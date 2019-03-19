@@ -10,7 +10,7 @@ export default class Map extends Component {
         this.state = {
             lat: -37.814,
             lng: 144.96332,
-            zoom: 12,
+            zoom: 13,
         };
     }
 
@@ -18,10 +18,14 @@ export default class Map extends Component {
     render() {
         const position = [this.state.lat, this.state.lng];
         return (
-            <LeafletMap center={position} zoom={this.state.zoom}>
+            <LeafletMap center={position} zoom={this.state.zoom} timeout={50000}>
                 <TileLayer
                     attribution="&amp;copy <a href=&quot;http://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    url='https://maps.tilehosting.com/styles/darkmatter/{z}/{x}/{y}.png?key=ljh1rAY6bM1lt0B7oi6Y'
+                />
+                <TileLayer
+                    attribution='<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>, Style: <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA 2.0</a> <a href="http://www.openrailwaymap.org/">OpenRailwayMap</a> and OpenStreetMap'
+                    url='http://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png'
                 />
                 <Marker position={[this.state.lat, this.state.lng]} />
             </LeafletMap>

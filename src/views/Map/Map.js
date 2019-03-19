@@ -18,7 +18,7 @@ export default class Map extends Component {
     render() {
         const position = [this.state.lat, this.state.lng];
         return (
-            <LeafletMap center={position} zoom={this.state.zoom} timeout={50000}>
+            <LeafletMap center={position} zoom={this.state.zoom} timeout={1000000}>
                 <TileLayer
                     attribution="&amp;copy <a href=&quot;http://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
                     url='https://maps.tilehosting.com/styles/darkmatter/{z}/{x}/{y}.png?key=ljh1rAY6bM1lt0B7oi6Y'

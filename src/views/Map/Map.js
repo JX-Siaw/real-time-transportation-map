@@ -5,6 +5,8 @@ import worldGeoJSON from 'geojson-world-map';
 import './Map.css';
 
 export default class Map extends Component {
+    mapRef = React.createRef();
+
     constructor(props) {
         super(props);
         this.state = {
@@ -14,14 +16,19 @@ export default class Map extends Component {
         };
     }
 
+    componentDidUpdate() {
+        console.log("Update");
+        this.mapRef.current.leafletElement.invalidateSize();
+    }
+
 
     render() {
         const position = [this.state.lat, this.state.lng];
         return (
-            <LeafletMap center={position} zoom={this.state.zoom} timeout={1000000}>
+            <LeafletMap ref={this.mapRef} center={position} zoom={this.state.zoom}>
                 <TileLayer
                     attribution="&amp;copy <a href=&quot;http://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
-                    url='https://maps.tilehosting.com/styles/darkmatter/{z}/{x}/{y}.png?key=ljh1rAY6bM1lt0B7oi6Y'
+                    url='https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png'
                 />
                 <TileLayer
                     attribution='<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>, Style: <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA 2.0</a> <a href="http://www.openrailwaymap.org/">OpenRailwayMap</a> and OpenStreetMap'

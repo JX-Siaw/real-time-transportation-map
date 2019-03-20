@@ -16,9 +16,13 @@ export default class Map extends Component {
         };
     }
 
-    componentDidUpdate() {
-        console.log("Update");
-        this.mapRef.current.leafletElement.invalidateSize();
+    componentDidMount() {
+        setTimeout(() => {
+            if (this.mapRef.current) {
+                console.log("Update");
+                this.mapRef.current.leafletElement.invalidateSize();
+            }
+        }, 10000);
     }
 
 

@@ -51,8 +51,7 @@ export default class Map extends Component {
 
         const request2 = '/v3/departures/route_type/0/stop/1108?look_backwards=false&max_results=2&devid=3001097';
         const signature2 = crypto.createHmac('sha1', key).update(request2).digest('hex');
-        setInterval(()=>{
-            axios.get(baseURL + request2 + '&signature=' + signature2)
+        axios.get(baseURL + request2 + '&signature=' + signature2)
             .then(response => {
                 let toCity = [];
                 let toCragieburn = [];
@@ -72,6 +71,28 @@ export default class Map extends Component {
                 });
                 console.log(this.state.departures);
             });
+
+        setInterval(() => {
+            axios.get(baseURL + request2 + '&signature=' + signature2)
+                .then(response => {
+                    let toCity = [];
+                    let toCragieburn = [];
+                    for (let i in response.data.departures) {
+                        // To city
+                        if (response.data.departures[i].direction_id == 1) {
+                            toCity.push(response.data.departures[i]);
+                        } else {
+                            toCragieburn.push(response.data.departures[i]);
+                        }
+                    }
+                    this.setState({
+                        departures: {
+                            toCity: toCity,
+                            toCragieburn: toCragieburn
+                        }
+                    });
+                    console.log(this.state.departures);
+                });
         }, 30000);
 
 

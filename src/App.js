@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { BrowserRouter as Router, Route, Link } from "react-router-dom";
+import { Switch, Route, Link } from "react-router-dom";
 
 import logo from './logo.svg';
 import './App.css';
@@ -10,10 +10,10 @@ import Map from './views/Map/Map';
 class App extends Component {
   render() {
     return (
-      <Router>
-        <Route path="/" exact component={Index} />
+      <Switch>
+        <Route exact path="/" component={Index} />
         <Route path="/map" component={Map} />
-      </Router>
+      </Switch>
     );
   }
 }

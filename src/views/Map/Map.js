@@ -108,10 +108,10 @@ export default class Map extends Component {
                     attribution="&amp;copy <a href=&quot;http://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
                     url='https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png'
                 />
-                <TileLayer
+                {/* <TileLayer
                     attribution='<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>, Style: <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA 2.0</a> <a href="http://www.openrailwaymap.org/">OpenRailwayMap</a> and OpenStreetMap'
                     url='http://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png'
-                />
+                /> */}
                 <Marker position={[-37.79377775, 144.930527]}>
                     <Popup>
                         <h1>Kensington Station</h1>

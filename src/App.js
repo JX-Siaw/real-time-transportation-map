@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
-import { Switch, Route, Link } from "react-router-dom";
+import { Switch, Route } from "react-router-dom";
 
-import logo from './logo.svg';
+// import logo from './logo.svg';
 import './App.css';
 
 import Index from './views/Index/Index';

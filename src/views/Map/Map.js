@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
-import { Map as LeafletMap, TileLayer, GeoJSON, Marker, Popup } from 'react-leaflet';
-import worldGeoJSON from 'geojson-world-map';
+import { Map as LeafletMap, TileLayer, Marker, Popup } from 'react-leaflet';
+// import worldGeoJSON from 'geojson-world-map';
 
 import './Map.css';
 
@@ -17,10 +17,8 @@ export default class Map extends Component {
             lat: -37.814,
             lng: 144.96332,
             zoom: 13,
-            departures: {
-                toCragieburn: [],
-                toCity: [],
-            },
+            stops: [],
+            departures: [],
         };
     }
 
@@ -42,58 +40,104 @@ export default class Map extends Component {
         console.log(now);
         const signature = crypto.createHmac('sha1', key).update(request).digest('hex');
         axios.get(baseURL + request + '&signature=' + signature)
-            .then(function (response) {
+            .then(response => {
                 console.log(response);
             });
 
         // Kensington Stop Id = 1108
-        // Broadmeadows Route Id = 3
+        // Broadmeadows Route Id = 3    
 
-        const request2 = '/v3/departures/route_type/0/stop/1108?look_backwards=false&max_results=2&devid=3001097';
-        const signature2 = crypto.createHmac('sha1', key).update(request2).digest('hex');
-        axios.get(baseURL + request2 + '&signature=' + signature2)
+
+        // Request to retrieve all the stops for a train line
+        const request3 = '/v3/stops/route/3/route_type/0?devid=3001097';
+        const signature3 = crypto.createHmac('sha1', key).update(request3).digest('hex');
+
+
+        axios.get(baseURL + request3 + '&signature=' + signature3)
             .then(response => {
-                let toCity = [];
-                let toCragieburn = [];
-                for (let i in response.data.departures) {
-                    // To city
-                    if (response.data.departures[i].direction_id == 1) {
-                        toCity.push(response.data.departures[i]);
-                    } else {
-                        toCragieburn.push(response.data.departures[i]);
-                    }
-                }
                 this.setState({
-                    departures: {
-                        toCity: toCity,
-                        toCragieburn: toCragieburn
-                    }
+                    stops: response.data.stops
                 });
-                console.log(this.state.departures);
+                for (let i in this.state.stops) {
+                    const stopID = this.state.stops[i].stop_id;
+                    const request4 = '/v3/departures/route_type/0/stop/' + stopID + '/route/3?look_backwards=false&max_results=1&devid=3001097';
+                    const signature4 = crypto.createHmac('sha1', key).update(request4).digest('hex');
+                    axios.get(baseURL + request4 + '&signature=' + signature4)
+                        .then(response => {
+                            this.setState({
+                                departures: [...this.state.departures, response.data.departures]
+                            });
+                        });
+                }
             });
 
         setInterval(() => {
-            axios.get(baseURL + request2 + '&signature=' + signature2)
+            axios.get(baseURL + request3 + '&signature=' + signature3)
                 .then(response => {
-                    let toCity = [];
-                    let toCragieburn = [];
-                    for (let i in response.data.departures) {
-                        // To city
-                        if (response.data.departures[i].direction_id == 1) {
-                            toCity.push(response.data.departures[i]);
-                        } else {
-                            toCragieburn.push(response.data.departures[i]);
-                        }
-                    }
                     this.setState({
-                        departures: {
-                            toCity: toCity,
-                            toCragieburn: toCragieburn
-                        }
+                        stops: response.data.stops
                     });
-                    console.log(this.state.departures);
+                    for (let i in this.state.stops) {
+                        const stopID = this.state.stops[i].stop_id;
+                        const request4 = '/v3/departures/route_type/0/stop/' + stopID + '/route/3?look_backwards=false&max_results=1&devid=3001097';
+                        const signature4 = crypto.createHmac('sha1', key).update(request4).digest('hex');
+                        axios.get(baseURL + request4 + '&signature=' + signature4)
+                            .then(response => {
+                                this.setState({
+                                    departures: [...this.state.departures, response.data.departures]
+                                });
+                            });
+                    }
                 });
-        }, 30000);
+        }, 30000)
+
+
+        // // Request to retrieve the departures for a specific stop
+        // const request2 = '/v3/departures/route_type/0/stop/1108?look_backwards=false&max_results=2&devid=3001097';
+        // const signature2 = crypto.createHmac('sha1', key).update(request2).digest('hex');
+        // axios.get(baseURL + request2 + '&signature=' + signature2)
+        //     .then(response => {
+        //         let toCity = [];
+        //         let toCragieburn = [];
+        //         for (let i in response.data.departures) {
+        //             // To city
+        //             if (response.data.departures[i].direction_id === 1) {
+        //                 toCity.push(response.data.departures[i]);
+        //             } else {
+        //                 toCragieburn.push(response.data.departures[i]);
+        //             }
+        //         }
+        //         this.setState({
+        //             departures: {
+        //                 toCity: toCity,
+        //                 toCragieburn: toCragieburn
+        //             }
+        //         });
+        //         console.log(this.state.departures);
+        //     });
+
+        // setInterval(() => {
+        //     axios.get(baseURL + request2 + '&signature=' + signature2)
+        //         .then(response => {
+        //             let toCity = [];
+        //             let toCragieburn = [];
+        //             for (let i in response.data.departures) {
+        //                 // To city
+        //                 if (response.data.departures[i].direction_id === 1) {
+        //                     toCity.push(response.data.departures[i]);
+        //                 } else {
+        //                     toCragieburn.push(response.data.departures[i]);
+        //                 }
+        //             }
+        //             this.setState({
+        //                 departures: {
+        //                     toCity: toCity,
+        //                     toCragieburn: toCragieburn
+        //                 }
+        //             });
+        //             console.log(this.state.departures);
+        //         });
+        // }, 30000);
 
 
 
@@ -105,14 +149,47 @@ export default class Map extends Component {
         return (
             <LeafletMap ref={this.mapRef} center={position} zoom={this.state.zoom}>
                 <TileLayer
-                    attribution="&amp;copy <a href=&quot;http://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
-                    url='https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png'
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    // url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+                    url='https://api.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.png?access_token=pk.eyJ1Ijoic2lhdzk2IiwiYSI6ImNqdHRra3FuNDFjeW00MHBjMnNveGdha2QifQ.HK8K4aseYwzjdqAStXAyxg'
                 />
                 {/* <TileLayer
                     attribution='<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>, Style: <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA 2.0</a> <a href="http://www.openrailwaymap.org/">OpenRailwayMap</a> and OpenStreetMap'
                     url='http://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png'
                 /> */}
-                <Marker position={[-37.79377775, 144.930527]}>
+
+                {/* Dynamically assign the Markers to the train stops */}
+                {
+                    this.state.stops.map((key, index) => {
+                        const latitude = this.state.stops[index].stop_latitude;
+                        const longitude = this.state.stops[index].stop_longitude;
+                        let toCity = "";
+                        let toCragieburn = "";
+                        for (let i in this.state.departures) {
+                            if (this.state.departures[i][0].stop_id === this.state.stops[index].stop_id) {
+                                for (let j in this.state.departures[i]) {
+                                    const estimatedTime = moment.utc(this.state.departures[i][j].estimated_departure_utc);
+                                    const now = moment.utc();
+                                    const difference = estimatedTime.diff(now, 'minutes');
+                                    if (this.state.departures[i][j].direction_id === 1) {
+                                        toCity = difference;
+                                    } else {
+                                        toCragieburn = difference;
+                                    }
+                                }
+                            }
+                        }
+                        return <Marker position={[latitude, longitude]}>
+                            <Popup>
+                                <h1>{this.state.stops[index].stop_name}</h1>
+                                <h2>To City: {toCity}</h2>
+                                <h2>To Cragieburn: {toCragieburn}</h2>
+                            </Popup>
+                        </Marker>
+                    })
+                }
+
+                {/* <Marker position={[-37.79377775, 144.930527]}>
                     <Popup>
                         <h1>Kensington Station</h1>
                         {
@@ -132,7 +209,7 @@ export default class Map extends Component {
                             })
                         }
                     </Popup>
-                </Marker>
+                </Marker> */}
             </LeafletMap>
         );
     }

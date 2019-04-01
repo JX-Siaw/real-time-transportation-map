@@ -1,12 +1,11 @@
 import React, { Component } from 'react'
-import { Map as LeafletMap, TileLayer, Marker, Popup, Tooltip } from 'react-leaflet';
+import { Map as LeafletMap, TileLayer, Marker, Popup, Tooltip, Polyline } from 'react-leaflet';
 // import worldGeoJSON from 'geojson-world-map';
 
 import './Map.css';
 
 import { railIcon } from '../../components/leaflet-icons/rail-icon/rail-icon';
 import { trainIcon } from '../../components/leaflet-icons/train-icon/train-icon';
-import { trainIcon2 } from '../../components/leaflet-icons/train-icon/train-icon2';
 
 const axios = require('axios');
 const crypto = require('crypto');
@@ -23,7 +22,22 @@ export default class Map extends Component {
             zoom: 13,
             stops: [],
             departures: [],
+            latlngs: []
         };
+    }
+
+    compareStops(a, b) {
+        const aStopSequence = a.stop_sequence;
+        const bStopSequence = b.stop_sequence;
+
+        let comparison = 0;
+        if (aStopSequence > bStopSequence) {
+            comparison = 1;
+        } else if (aStopSequence < bStopSequence) {
+            comparison = -1;
+        }
+
+        return comparison;
     }
 
     componentDidMount() {
@@ -53,7 +67,7 @@ export default class Map extends Component {
 
 
         // Request to retrieve all the stops for a train line
-        const request3 = '/v3/stops/route/3/route_type/0?devid=3001097';
+        const request3 = '/v3/stops/route/3/route_type/0?direction_id=1&devid=3001097';
         const signature3 = crypto.createHmac('sha1', key).update(request3).digest('hex');
 
 
@@ -62,10 +76,14 @@ export default class Map extends Component {
                 this.setState({
                     stops: response.data.stops
                 });
+                let latlngs = [];
                 for (let i in this.state.stops) {
                     const stopID = this.state.stops[i].stop_id;
                     const request4 = '/v3/departures/route_type/0/stop/' + stopID + '/route/3?look_backwards=false&max_results=1&devid=3001097';
                     const signature4 = crypto.createHmac('sha1', key).update(request4).digest('hex');
+                    if (i < 2) {
+                        latlngs.push([this.state.stops[i].stop_latitude, this.state.stops[i].stop_longitude]);
+                    }
                     axios.get(baseURL + request4 + '&signature=' + signature4)
                         .then(response => {
                             this.setState({
@@ -76,6 +94,9 @@ export default class Map extends Component {
                             console.log(error);
                         });
                 }
+                this.setState({
+                    latlngs: latlngs
+                });
             })
             .catch(error => {
                 console.log(error);
@@ -165,6 +186,8 @@ export default class Map extends Component {
 
     render() {
         const position = [this.state.lat, this.state.lng];
+        console.log(this.state.stops.sort(this.compareStops));
+
         return (
             <LeafletMap ref={this.mapRef} center={position} zoom={this.state.zoom}>
                 <TileLayer
@@ -199,11 +222,6 @@ export default class Map extends Component {
                                     }
                                     if (this.state.departures[i][j].at_platform) {
                                         AtPlatform = true;
-                                        console.log(this.state.departures[i][j].at_platform);
-                                        console.log(this.state.departures[i][j].stop_id);
-                                    }
-                                    else {
-
                                     }
                                 }
                             }
@@ -226,7 +244,6 @@ export default class Map extends Component {
                                     <h1>{this.state.stops[index].stop_name}</h1>
                                     <h2>To City: {toCity}</h2>
                                     <h2>To Cragieburn: {toCragieburn}</h2>
-                                    <h2>At Platform: {AtPlatform}</h2>
                                 </Popup>
                                 <Tooltip>
                                     {this.state.stops[index].stop_name}
@@ -234,6 +251,10 @@ export default class Map extends Component {
                             </Marker>
                         }
                     })
+                }
+
+                {
+                    (this.state.latlngs.length !== 0) ? <Polyline positions={this.state.latlngs.sort(this.compareStops)} /> : null
                 }
 
                 {/* <Marker position={[-37.79377775, 144.930527]}>

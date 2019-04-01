@@ -1,8 +1,12 @@
 import React, { Component } from 'react'
-import { Map as LeafletMap, TileLayer, Marker, Popup } from 'react-leaflet';
+import { Map as LeafletMap, TileLayer, Marker, Popup, Tooltip } from 'react-leaflet';
 // import worldGeoJSON from 'geojson-world-map';
 
 import './Map.css';
+
+import { railIcon } from '../../components/leaflet-icons/rail-icon/rail-icon';
+import { trainIcon } from '../../components/leaflet-icons/train-icon/train-icon';
+import { trainIcon2 } from '../../components/leaflet-icons/train-icon/train-icon2';
 
 const axios = require('axios');
 const crypto = require('crypto');
@@ -36,7 +40,7 @@ export default class Map extends Component {
 
         // Health check
         const request = '/v2/healthcheck?timestamp=' + now + '&devid=' + id;
-        const baseURL = 'https://timetableapi.ptv.vic.gov.au';
+        const baseURL = 'http://timetableapi.ptv.vic.gov.au';
         console.log(now);
         const signature = crypto.createHmac('sha1', key).update(request).digest('hex');
         axios.get(baseURL + request + '&signature=' + signature)
@@ -67,8 +71,14 @@ export default class Map extends Component {
                             this.setState({
                                 departures: [...this.state.departures, response.data.departures]
                             });
+                        })
+                        .catch(error => {
+                            console.log(error);
                         });
                 }
+            })
+            .catch(error => {
+                console.log(error);
             });
 
         setInterval(() => {
@@ -76,6 +86,9 @@ export default class Map extends Component {
                 .then(response => {
                     this.setState({
                         stops: response.data.stops
+                    });
+                    this.setState({
+                        departures: []
                     });
                     for (let i in this.state.stops) {
                         const stopID = this.state.stops[i].stop_id;
@@ -86,8 +99,14 @@ export default class Map extends Component {
                                 this.setState({
                                     departures: [...this.state.departures, response.data.departures]
                                 });
+                            })
+                            .catch(error => {
+                                console.log(error);
                             });
                     }
+                })
+                .catch(error => {
+                    console.log(error);
                 });
         }, 30000)
 
@@ -165,10 +184,12 @@ export default class Map extends Component {
                         const longitude = this.state.stops[index].stop_longitude;
                         let toCity = "";
                         let toCragieburn = "";
+                        let AtPlatform = false;
                         for (let i in this.state.departures) {
                             if (this.state.departures[i][0].stop_id === this.state.stops[index].stop_id) {
                                 for (let j in this.state.departures[i]) {
-                                    const estimatedTime = moment.utc(this.state.departures[i][j].estimated_departure_utc);
+                                    let estimatedTime;
+                                    estimatedTime = moment.utc(this.state.departures[i][j].estimated_departure_utc);
                                     const now = moment.utc();
                                     const difference = estimatedTime.diff(now, 'minutes');
                                     if (this.state.departures[i][j].direction_id === 1) {
@@ -176,16 +197,42 @@ export default class Map extends Component {
                                     } else {
                                         toCragieburn = difference;
                                     }
+                                    if (this.state.departures[i][j].at_platform) {
+                                        AtPlatform = true;
+                                        console.log(this.state.departures[i][j].at_platform);
+                                        console.log(this.state.departures[i][j].stop_id);
+                                    }
+                                    else {
+
+                                    }
                                 }
                             }
                         }
-                        return <Marker position={[latitude, longitude]}>
-                            <Popup>
-                                <h1>{this.state.stops[index].stop_name}</h1>
-                                <h2>To City: {toCity}</h2>
-                                <h2>To Cragieburn: {toCragieburn}</h2>
-                            </Popup>
-                        </Marker>
+                        if (AtPlatform) {
+                            return <Marker icon={trainIcon} position={[latitude, longitude]}>
+                                <Popup>
+                                    <h1>{this.state.stops[index].stop_name}</h1>
+                                    <h2>To City: {toCity}</h2>
+                                    <h2>To Cragieburn: {toCragieburn}</h2>
+                                    <h2>At Platform: {AtPlatform}</h2>
+                                </Popup>
+                                <Tooltip>
+                                    {this.state.stops[index].stop_name}
+                                </Tooltip>
+                            </Marker>
+                        } else {
+                            return <Marker icon={railIcon} position={[latitude, longitude]}>
+                                <Popup>
+                                    <h1>{this.state.stops[index].stop_name}</h1>
+                                    <h2>To City: {toCity}</h2>
+                                    <h2>To Cragieburn: {toCragieburn}</h2>
+                                    <h2>At Platform: {AtPlatform}</h2>
+                                </Popup>
+                                <Tooltip>
+                                    {this.state.stops[index].stop_name}
+                                </Tooltip>
+                            </Marker>
+                        }
                     })
                 }
 

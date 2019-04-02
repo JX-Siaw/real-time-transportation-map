@@ -99,7 +99,7 @@ export default class Map extends Component {
 
         // Health check
         const request = '/v2/healthcheck?timestamp=' + now + '&devid=' + id;
-        const baseURL = 'http://timetableapi.ptv.vic.gov.au';
+        const baseURL = 'https://timetableapi.ptv.vic.gov.au';
         console.log(now);
         const signature = crypto.createHmac('sha1', key).update(request).digest('hex');
         axios.get(baseURL + request + '&signature=' + signature)

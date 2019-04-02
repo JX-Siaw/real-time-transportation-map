@@ -2,9 +2,9 @@ import L from 'leaflet';
 
 const railIcon = new L.icon({
     iconUrl: require('../../../assets/icons/rail2.svg'),
-    iconAnchor: [20, 0],
+    iconAnchor: [20, 20],
     popupAnchor: [-5, -10],
-    tooltipAnchor: [20, 30],
+    tooltipAnchor: [20, 10],
     shadowUrl: null,
     shadowSize: null,
     shadowAnchor: null,

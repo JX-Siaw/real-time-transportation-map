@@ -1,7 +1,7 @@
 import L from 'leaflet';
 
-const trainIcon = new L.icon({
-    iconUrl: require('../../../assets/icons/train.png'),
+const trainSideIcon = new L.icon({
+    iconUrl: require('../../../assets/icons/train_side.svg'),
     iconAnchor: [20, 20],
     popupAnchor: [-5, -10],
     tooltipAnchor: [20, 10],
@@ -12,7 +12,7 @@ const trainIcon = new L.icon({
     className: 'leaflet-div-icon'
 });
 
-export { trainIcon };
+export { trainSideIcon };
 
 
 // Icon made by 

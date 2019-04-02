@@ -6,6 +6,7 @@ import './Map.css';
 
 import { railIcon } from '../../components/leaflet-icons/rail-icon/rail-icon';
 import { trainIcon } from '../../components/leaflet-icons/train-icon/train-icon';
+import { trainSideIcon } from '../../components/leaflet-icons/train-icon/train-side-icon';
 
 const axios = require('axios');
 const crypto = require('crypto');
@@ -38,6 +39,50 @@ export default class Map extends Component {
         }
 
         return comparison;
+    }
+
+    calculateTrain() {
+        const stops = this.state.stops;
+        const departures = this.state.departures;
+
+        for (let i in stops) {
+            for (let j in departures) {
+                for (let k in departures[j]) {
+                    if (departures[j][k].stop_id === stops[i].stop_id) {
+                        const estimatedTime = moment.utc(departures[j][k].estimated_departure_utc);
+                        const difference = estimatedTime.diff(moment.utc(), 'minutes');
+                        if (difference <= 2 && !departures[j][k].at_platform && departures[j][k].direction_id === 1) {
+                            console.log("There is a train before: " + stops[i].stop_name + "," + stops[i].stop_sequence);
+                        }
+                    }
+
+                }
+
+            }
+        }
+
+        console.log(stops);
+        console.log(departures);
+    }
+
+    getRuns() {
+        const stops = this.state.stops;
+        const departures = this.state.departures;
+        const runs = [];
+
+        for (let i in departures) {
+            for (let j in departures[i]) {
+                if (runs.indexOf(departures[i][j].run_id) === -1) {
+                    runs.push(departures[i][j].run_id);
+                }
+            }
+        }
+
+        console.log(runs);
+    }
+
+    getTrainLocation() {
+        const runs = this.state.runs;
     }
 
     componentDidMount() {
@@ -74,18 +119,22 @@ export default class Map extends Component {
         axios.get(baseURL + request3 + '&signature=' + signature3)
             .then(response => {
                 this.setState({
-                    stops: response.data.stops
+                    stops: response.data.stops.sort(this.compareStops)
                 });
                 let latlngs = [];
+                let runs = [];
                 for (let i in this.state.stops) {
                     const stopID = this.state.stops[i].stop_id;
                     const request4 = '/v3/departures/route_type/0/stop/' + stopID + '/route/3?look_backwards=false&max_results=1&devid=3001097';
                     const signature4 = crypto.createHmac('sha1', key).update(request4).digest('hex');
-                    if (i < 2) {
-                        latlngs.push([this.state.stops[i].stop_latitude, this.state.stops[i].stop_longitude]);
-                    }
+                    latlngs.push([this.state.stops[i].stop_latitude, this.state.stops[i].stop_longitude]);
                     axios.get(baseURL + request4 + '&signature=' + signature4)
                         .then(response => {
+                            for (let i in response.data.departures) {
+                                if (runs.indexOf(response.data.departures[i].run_id) === -1) {
+                                    runs.push(response.data.departures[i].run_id);
+                                }
+                            }
                             this.setState({
                                 departures: [...this.state.departures, response.data.departures]
                             });
@@ -97,6 +146,9 @@ export default class Map extends Component {
                 this.setState({
                     latlngs: latlngs
                 });
+                this.setState({
+                    runs: runs
+                })
             })
             .catch(error => {
                 console.log(error);
@@ -106,7 +158,7 @@ export default class Map extends Component {
             axios.get(baseURL + request3 + '&signature=' + signature3)
                 .then(response => {
                     this.setState({
-                        stops: response.data.stops
+                        stops: response.data.stops.sort(this.compareStops)
                     });
                     this.setState({
                         departures: []
@@ -186,8 +238,7 @@ export default class Map extends Component {
 
     render() {
         const position = [this.state.lat, this.state.lng];
-        console.log(this.state.stops.sort(this.compareStops));
-
+        this.getTrainLocation();
         return (
             <LeafletMap ref={this.mapRef} center={position} zoom={this.state.zoom}>
                 <TileLayer

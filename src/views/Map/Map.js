@@ -7,6 +7,7 @@ import './Map.css';
 import { railIcon } from '../../components/leaflet-icons/rail-icon/rail-icon';
 import { trainIcon } from '../../components/leaflet-icons/train-icon/train-icon';
 import { trainSideIcon } from '../../components/leaflet-icons/train-icon/train-side-icon';
+import { deepStrictEqual } from 'assert';
 
 const axios = require('axios');
 const crypto = require('crypto');
@@ -55,31 +56,52 @@ export default class Map extends Component {
         return comparison;
     }
 
-    getStops(baseURL, key, devid, route_id) {
+    async getStops(baseURL, key, devid, route_id) {
         const request = '/v3/stops/route/' + route_id + '/route_type/0?direction_id=1&devid=' + devid;
         const signature = this.encryptSignature(key, request);
-        
-        axios.get(baseURL + request + '&signature=' + signature)
+
+        const stops = await axios.get(baseURL + request + '&signature=' + signature)
             .then(response => {
                 const stops = response.data.stops.sort(this.compareStops);
-                this.setState({
-                    stops: stops
-                });
-                console.log(stops);
+                return stops;
             })
             .catch(error => {
                 console.log(error);
             })
+
+        this.setState({
+            stops: stops
+        });
+        return stops
     }
 
-    getDepartures(baseURL, key, devid, route_id, stop_id) {
+    async getDepartures(baseURL, key, devid, route_id, stop_id) {
         const request = '/v3/departures/route_type/0/stop/' + stop_id + '/route/' + route_id + '?look_backwards=false&max_results=1&devid=' + devid;
         const signature = this.encryptSignature(key, request);
 
-        axios.get(baseURL + request + '&signature=' + signature)
+        const departures = await axios.get(baseURL + request + '&signature=' + signature)
             .then(response => {
-                const 
+                return response.data.departures
             })
+        return departures;
+    }
+
+    updateDepartures(baseURL, key, devid) {
+        this.setState({
+            departures: []
+        });
+
+        for (let i in this.state.stops) {
+            const stop_id = this.state.stops[i].stop_id;
+            const route_id = 3;
+
+            this.getDepartures(baseURL, key, devid, route_id, stop_id)
+                .then(response => {
+                    this.setState({
+                        departures: [...this.state.departures, response]
+                    });
+                })
+        }
     }
 
     calculateTrain() {
@@ -127,12 +149,12 @@ export default class Map extends Component {
     }
 
     componentDidMount() {
-        setTimeout(() => {
-            if (this.mapRef.current) {
-                console.log("Update");
-                this.mapRef.current.leafletElement.invalidateSize();
-            }
-        }, 10000);
+        // setTimeout(() => {
+        //     if (this.mapRef.current) {
+        //         console.log("Update");
+        //         this.mapRef.current.leafletElement.invalidateSize();
+        //     }
+        // }, 10000);
 
         let now = moment.utc().format();
         const key = 'b4ba8648-d112-4cf5-891d-8533756cef97';
@@ -145,135 +167,28 @@ export default class Map extends Component {
         // Kensington Stop Id = 1108
         // Broadmeadows Route Id = 3    
 
-        this.getStops(baseURL, key, id, 3);
+        this.getStops(baseURL, key, id, 3)
+            .then(result => {
+                for (let i in result) {
+                    this.getDepartures(baseURL, key, id, 3, result[i].stop_id)
+                        .then(response => {
+                            this.setState({
+                                departures: [...this.state.departures, response]
+                            });
+                        })
+                }
+            });
 
-
-        // Request to retrieve all the stops for a train line
-        const request3 = '/v3/stops/route/3/route_type/0?direction_id=1&devid=3001097';
-        const signature3 = crypto.createHmac('sha1', key).update(request3).digest('hex');
-
-
-        // axios.get(baseURL + request3 + '&signature=' + signature3)
-        //     .then(response => {
-        //         this.setState({
-        //             stops: response.data.stops.sort(this.compareStops)
-        //         });
-        //         let latlngs = [];
-        //         let runs = [];
-        //         for (let i in this.state.stops) {
-        //             const stopID = this.state.stops[i].stop_id;
-        //             const request4 = '/v3/departures/route_type/0/stop/' + stopID + '/route/3?look_backwards=false&max_results=1&devid=3001097';
-        //             const signature4 = crypto.createHmac('sha1', key).update(request4).digest('hex');
-        //             latlngs.push([this.state.stops[i].stop_latitude, this.state.stops[i].stop_longitude]);
-        //             axios.get(baseURL + request4 + '&signature=' + signature4)
-        //                 .then(response => {
-        //                     for (let i in response.data.departures) {
-        //                         if (runs.indexOf(response.data.departures[i].run_id) === -1) {
-        //                             runs.push(response.data.departures[i].run_id);
-        //                         }
-        //                     }
-        //                     this.setState({
-        //                         departures: [...this.state.departures, response.data.departures]
-        //                     });
-        //                 })
-        //                 .catch(error => {
-        //                     console.log(error);
-        //                 });
-        //         }
-        //         this.setState({
-        //             latlngs: latlngs
-        //         });
-        //         this.setState({
-        //             runs: runs
-        //         })
-        //     })
-        //     .catch(error => {
-        //         console.log(error);
-        //     });
-
-        // setInterval(() => {
-        //     axios.get(baseURL + request3 + '&signature=' + signature3)
-        //         .then(response => {
-        //             this.setState({
-        //                 stops: response.data.stops.sort(this.compareStops)
-        //             });
-        //             this.setState({
-        //                 departures: []
-        //             });
-        //             for (let i in this.state.stops) {
-        //                 const stopID = this.state.stops[i].stop_id;
-        //                 const request4 = '/v3/departures/route_type/0/stop/' + stopID + '/route/3?look_backwards=false&max_results=1&devid=3001097';
-        //                 const signature4 = crypto.createHmac('sha1', key).update(request4).digest('hex');
-        //                 axios.get(baseURL + request4 + '&signature=' + signature4)
-        //                     .then(response => {
-        //                         this.setState({
-        //                             departures: [...this.state.departures, response.data.departures]
-        //                         });
-        //                     })
-        //                     .catch(error => {
-        //                         console.log(error);
-        //                     });
-        //             }
-        //         })
-        //         .catch(error => {
-        //             console.log(error);
-        //         });
-        // }, 30000)
-
-
-        // // Request to retrieve the departures for a specific stop
-        // const request2 = '/v3/departures/route_type/0/stop/1108?look_backwards=false&max_results=2&devid=3001097';
-        // const signature2 = crypto.createHmac('sha1', key).update(request2).digest('hex');
-        // axios.get(baseURL + request2 + '&signature=' + signature2)
-        //     .then(response => {
-        //         let toCity = [];
-        //         let toCragieburn = [];
-        //         for (let i in response.data.departures) {
-        //             // To city
-        //             if (response.data.departures[i].direction_id === 1) {
-        //                 toCity.push(response.data.departures[i]);
-        //             } else {
-        //                 toCragieburn.push(response.data.departures[i]);
-        //             }
-        //         }
-        //         this.setState({
-        //             departures: {
-        //                 toCity: toCity,
-        //                 toCragieburn: toCragieburn
-        //             }
-        //         });
-        //         console.log(this.state.departures);
-        //     });
-
-        // setInterval(() => {
-        //     axios.get(baseURL + request2 + '&signature=' + signature2)
-        //         .then(response => {
-        //             let toCity = [];
-        //             let toCragieburn = [];
-        //             for (let i in response.data.departures) {
-        //                 // To city
-        //                 if (response.data.departures[i].direction_id === 1) {
-        //                     toCity.push(response.data.departures[i]);
-        //                 } else {
-        //                     toCragieburn.push(response.data.departures[i]);
-        //                 }
-        //             }
-        //             this.setState({
-        //                 departures: {
-        //                     toCity: toCity,
-        //                     toCragieburn: toCragieburn
-        //                 }
-        //             });
-        //             console.log(this.state.departures);
-        //         });
-        // }, 30000);
-
-
-
+        setInterval(() => {
+            console.log("Updating Departures");
+            this.updateDepartures(baseURL, key, id);
+        }, 15000);
     }
 
 
     render() {
+        // console.log(this.state.stops);
+        // console.log(this.state.departures);
         const position = [this.state.lat, this.state.lng];
         return (
             <LeafletMap ref={this.mapRef} center={position} zoom={this.state.zoom}>
@@ -319,7 +234,6 @@ export default class Map extends Component {
                                     <h1>{this.state.stops[index].stop_name}</h1>
                                     <h2>To City: {toCity}</h2>
                                     <h2>To Cragieburn: {toCragieburn}</h2>
-                                    <h2>At Platform: {AtPlatform}</h2>
                                 </Popup>
                                 <Tooltip>
                                     {this.state.stops[index].stop_name}
@@ -341,31 +255,17 @@ export default class Map extends Component {
                 }
 
                 {
-                    
-                    (this.state.latlngs.length !== 0) ? <Polyline positions={this.state.latlngs.sort(this.compareStops)} /> : null
+                    this.state.stops.map((key, index) => {
+                        if (index < this.state.stops.length - 1) {
+                            let nextIndex = index + 1;
+                            const positions = [[this.state.stops[index].stop_latitude, this.state.stops[index].stop_longitude], [this.state.stops[nextIndex].stop_latitude, this.state.stops[nextIndex].stop_longitude]];
+                        return <Polyline positions={positions} />
+                        }
+                    })
                 }
 
-                {/* <Marker position={[-37.79377775, 144.930527]}>
-                    <Popup>
-                        <h1>Kensington Station</h1>
-                        {
-                            this.state.departures.toCity.map((key, index) => {
-                                const estimatedTime = moment.utc(this.state.departures.toCity[index].estimated_departure_utc);
-                                const now = moment.utc();
-                                const difference = estimatedTime.diff(now, 'minutes');
-                                return <p>To City: {difference} mins</p>
-                            })
-                        }
-                        {
-                            this.state.departures.toCragieburn.map((key, index) => {
-                                const estimatedTime = moment.utc(this.state.departures.toCragieburn[index].estimated_departure_utc);
-                                const now = moment.utc();
-                                const difference = estimatedTime.diff(now, 'minutes');
-                                return <p>To Cragieburn: {difference} mins</p>
-                            })
-                        }
-                    </Popup>
-                </Marker> */}
+                (this.state.latlngs.length !== 0) ? <Polyline positions={this.state.latlngs.sort(this.compareStops)} /> : null
+                
             </LeafletMap>
         );
     }

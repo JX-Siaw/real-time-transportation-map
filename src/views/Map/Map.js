@@ -27,6 +27,20 @@ export default class Map extends Component {
         };
     }
 
+    encryptSignature(key, url) {
+        return crypto.createHmac('sha1', key).update(url).digest('hex');
+    }
+
+    PTVApiHealhCheck(baseURL, key, timestamp, devid) {
+        const request = '/v2/healthcheck?timestamp=' + timestamp + '&devid=' + devid;
+        const signature = this.encryptSignature(key, request);
+        axios.get(baseURL + request + '&signature=' + signature)
+            .then(response => {
+                console.log(response);
+            });
+    }
+
+    // To sort the array of stops according to the stop_sequence_id
     compareStops(a, b) {
         const aStopSequence = a.stop_sequence;
         const bStopSequence = b.stop_sequence;
@@ -39,6 +53,33 @@ export default class Map extends Component {
         }
 
         return comparison;
+    }
+
+    getStops(baseURL, key, devid, route_id) {
+        const request = '/v3/stops/route/' + route_id + '/route_type/0?direction_id=1&devid=' + devid;
+        const signature = this.encryptSignature(key, request);
+        
+        axios.get(baseURL + request + '&signature=' + signature)
+            .then(response => {
+                const stops = response.data.stops.sort(this.compareStops);
+                this.setState({
+                    stops: stops
+                });
+                console.log(stops);
+            })
+            .catch(error => {
+                console.log(error);
+            })
+    }
+
+    getDepartures(baseURL, key, devid, route_id, stop_id) {
+        const request = '/v3/departures/route_type/0/stop/' + stop_id + '/route/' + route_id + '?look_backwards=false&max_results=1&devid=' + devid;
+        const signature = this.encryptSignature(key, request);
+
+        axios.get(baseURL + request + '&signature=' + signature)
+            .then(response => {
+                const 
+            })
     }
 
     calculateTrain() {
@@ -96,19 +137,15 @@ export default class Map extends Component {
         let now = moment.utc().format();
         const key = 'b4ba8648-d112-4cf5-891d-8533756cef97';
         const id = '3001097';
+        const baseURL = 'https://timetableapi.ptv.vic.gov.au';
 
         // Health check
-        const request = '/v2/healthcheck?timestamp=' + now + '&devid=' + id;
-        const baseURL = 'https://timetableapi.ptv.vic.gov.au';
-        console.log(now);
-        const signature = crypto.createHmac('sha1', key).update(request).digest('hex');
-        axios.get(baseURL + request + '&signature=' + signature)
-            .then(response => {
-                console.log(response);
-            });
+        this.PTVApiHealhCheck(baseURL, key, now, id);
 
         // Kensington Stop Id = 1108
         // Broadmeadows Route Id = 3    
+
+        this.getStops(baseURL, key, id, 3);
 
 
         // Request to retrieve all the stops for a train line
@@ -116,72 +153,72 @@ export default class Map extends Component {
         const signature3 = crypto.createHmac('sha1', key).update(request3).digest('hex');
 
 
-        axios.get(baseURL + request3 + '&signature=' + signature3)
-            .then(response => {
-                this.setState({
-                    stops: response.data.stops.sort(this.compareStops)
-                });
-                let latlngs = [];
-                let runs = [];
-                for (let i in this.state.stops) {
-                    const stopID = this.state.stops[i].stop_id;
-                    const request4 = '/v3/departures/route_type/0/stop/' + stopID + '/route/3?look_backwards=false&max_results=1&devid=3001097';
-                    const signature4 = crypto.createHmac('sha1', key).update(request4).digest('hex');
-                    latlngs.push([this.state.stops[i].stop_latitude, this.state.stops[i].stop_longitude]);
-                    axios.get(baseURL + request4 + '&signature=' + signature4)
-                        .then(response => {
-                            for (let i in response.data.departures) {
-                                if (runs.indexOf(response.data.departures[i].run_id) === -1) {
-                                    runs.push(response.data.departures[i].run_id);
-                                }
-                            }
-                            this.setState({
-                                departures: [...this.state.departures, response.data.departures]
-                            });
-                        })
-                        .catch(error => {
-                            console.log(error);
-                        });
-                }
-                this.setState({
-                    latlngs: latlngs
-                });
-                this.setState({
-                    runs: runs
-                })
-            })
-            .catch(error => {
-                console.log(error);
-            });
+        // axios.get(baseURL + request3 + '&signature=' + signature3)
+        //     .then(response => {
+        //         this.setState({
+        //             stops: response.data.stops.sort(this.compareStops)
+        //         });
+        //         let latlngs = [];
+        //         let runs = [];
+        //         for (let i in this.state.stops) {
+        //             const stopID = this.state.stops[i].stop_id;
+        //             const request4 = '/v3/departures/route_type/0/stop/' + stopID + '/route/3?look_backwards=false&max_results=1&devid=3001097';
+        //             const signature4 = crypto.createHmac('sha1', key).update(request4).digest('hex');
+        //             latlngs.push([this.state.stops[i].stop_latitude, this.state.stops[i].stop_longitude]);
+        //             axios.get(baseURL + request4 + '&signature=' + signature4)
+        //                 .then(response => {
+        //                     for (let i in response.data.departures) {
+        //                         if (runs.indexOf(response.data.departures[i].run_id) === -1) {
+        //                             runs.push(response.data.departures[i].run_id);
+        //                         }
+        //                     }
+        //                     this.setState({
+        //                         departures: [...this.state.departures, response.data.departures]
+        //                     });
+        //                 })
+        //                 .catch(error => {
+        //                     console.log(error);
+        //                 });
+        //         }
+        //         this.setState({
+        //             latlngs: latlngs
+        //         });
+        //         this.setState({
+        //             runs: runs
+        //         })
+        //     })
+        //     .catch(error => {
+        //         console.log(error);
+        //     });
 
-        setInterval(() => {
-            axios.get(baseURL + request3 + '&signature=' + signature3)
-                .then(response => {
-                    this.setState({
-                        stops: response.data.stops.sort(this.compareStops)
-                    });
-                    this.setState({
-                        departures: []
-                    });
-                    for (let i in this.state.stops) {
-                        const stopID = this.state.stops[i].stop_id;
-                        const request4 = '/v3/departures/route_type/0/stop/' + stopID + '/route/3?look_backwards=false&max_results=1&devid=3001097';
-                        const signature4 = crypto.createHmac('sha1', key).update(request4).digest('hex');
-                        axios.get(baseURL + request4 + '&signature=' + signature4)
-                            .then(response => {
-                                this.setState({
-                                    departures: [...this.state.departures, response.data.departures]
-                                });
-                            })
-                            .catch(error => {
-                                console.log(error);
-                            });
-                    }
-                })
-                .catch(error => {
-                    console.log(error);
-                });
-        }, 30000)
+        // setInterval(() => {
+        //     axios.get(baseURL + request3 + '&signature=' + signature3)
+        //         .then(response => {
+        //             this.setState({
+        //                 stops: response.data.stops.sort(this.compareStops)
+        //             });
+        //             this.setState({
+        //                 departures: []
+        //             });
+        //             for (let i in this.state.stops) {
+        //                 const stopID = this.state.stops[i].stop_id;
+        //                 const request4 = '/v3/departures/route_type/0/stop/' + stopID + '/route/3?look_backwards=false&max_results=1&devid=3001097';
+        //                 const signature4 = crypto.createHmac('sha1', key).update(request4).digest('hex');
+        //                 axios.get(baseURL + request4 + '&signature=' + signature4)
+        //                     .then(response => {
+        //                         this.setState({
+        //                             departures: [...this.state.departures, response.data.departures]
+        //                         });
+        //                     })
+        //                     .catch(error => {
+        //                         console.log(error);
+        //                     });
+        //             }
+        //         })
+        //         .catch(error => {
+        //             console.log(error);
+        //         });
+        // }, 30000)
 
 
         // // Request to retrieve the departures for a specific stop
@@ -238,7 +275,6 @@ export default class Map extends Component {
 
     render() {
         const position = [this.state.lat, this.state.lng];
-        this.getTrainLocation();
         return (
             <LeafletMap ref={this.mapRef} center={position} zoom={this.state.zoom}>
                 <TileLayer
@@ -305,6 +341,7 @@ export default class Map extends Component {
                 }
 
                 {
+                    
                     (this.state.latlngs.length !== 0) ? <Polyline positions={this.state.latlngs.sort(this.compareStops)} /> : null
                 }
 

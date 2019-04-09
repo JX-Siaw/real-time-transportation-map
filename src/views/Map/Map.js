@@ -196,7 +196,6 @@ export default class Map extends Component {
                         for (let p in trainAtStation) {
                             if (trainAtStation[p] === stops[l].stop_id) {
                                 console.log("There is a train at " + stops[l].stop_name);
-                                return;
                             }
                         }
 
@@ -210,11 +209,25 @@ export default class Map extends Component {
                             else if (departurewithShortestEstimatedTime.direction_id === 1 && stops[l].stop_sequence > 1) {
                                 let index = l - 1;
                                 lastStop = stops[index];
+                                const trainsPair = {
+                                    lastStationID: lastStop.stop_id,
+                                    lastStationName: lastStop.stop_name,
+                                    nextStationID: stops[l].stop_id,
+                                    nextStationName: stops[l].stop_name
+                                }
+                                trainIsBetweenStation.push(trainsPair);
                                 console.log("There is a train between " + lastStop.stop_name + "(" + lastStop.stop_id + ")" + " and " + stops[l].stop_name + " heading to the city.");
                             } else {
                                 if (stops[l].stop_sequence < 21) {
                                     let index = parseInt(l) + 1;
                                     lastStop = stops[index];
+                                    const trainsPair = {
+                                        lastStationID: lastStop.stop_id,
+                                        lastStationName: lastStop.stop_name,
+                                        nextStationID: stops[l].stop_id,
+                                        nextStationName: stops[l].stop_name
+                                    }
+                                    trainIsBetweenStation.push(trainsPair);
                                     console.log("There is a train between " + lastStop.stop_name + "(" + lastStop.stop_id + ")" + " and " + stops[l].stop_name + " heading to the Cragieburn with the runID " + runs[i]);
                                 }
                             }
@@ -224,10 +237,70 @@ export default class Map extends Component {
                 }
             }
         }
+        return [trainAtStation, trainIsBetweenStation];
     }
 
-    getTrainLocation() {
-        const runs = this.state.runs;
+    getTrainLocation(trainAtStation, trainIsBetweenStation) {
+        let trainCoordinates = [];
+
+        for (let i in trainIsBetweenStation) {
+            for (let j in trainAtStation) {
+                if (trainIsBetweenStation[i].lastStationID === trainAtStation[j]) {
+                    const coordinates = this.getTrainCoordinates(trainAtStation[j]);
+                    const trainCoordinate = {
+                        type: "At Station",
+                        coordinates: coordinates
+                    };
+                    trainCoordinates.push(trainCoordinate);
+                } else {
+                    const coordinates = this.getInBetweenTrainCoordinates(trainIsBetweenStation[i].lastStationID, trainIsBetweenStation[i].nextStationID);
+                    const trainCoordinate = {
+                        type: "Between Station",
+                        coordinates: coordinates
+                    };
+                    trainCoordinates.push(trainCoordinate);
+                }
+            }
+        }
+        return trainCoordinates;
+    }
+
+    getTrainCoordinates(stopID) {
+        for (let i in this.state.stops) {
+            if (this.state.stops[i].stop_id === stopID) {
+                return {
+                    latitude: this.state.stops[i].stop_latitude,
+                    longitude: this.state.stops[i].stop_longitude
+                };
+            }
+        }
+    }
+
+    getInBetweenTrainCoordinates(lastStopID, nextStopID) {
+        let lastStopCoords;
+        let nextStopCoords;
+        for (let i in this.state.stops) {
+            if (this.state.stops[i].stop_id === lastStopID) {
+                lastStopCoords = {
+                    latitude: this.state.stops[i].stop_latitude,
+                    longitude: this.state.stops[i].stop_longitude
+                };
+            }
+
+            if (this.state.stops[i].stop_id === nextStopID) {
+                nextStopCoords = {
+                    latitude: this.state.stops[i].stop_latitude,
+                    longitude: this.state.stops[i].stop_longitude
+                };
+            }
+        }
+        const latitude = (lastStopCoords.latitude + nextStopCoords.latitude) / 2;
+        const longitude = (lastStopCoords.longitude + nextStopCoords.longitude) / 2;
+
+        return {
+            latitude: latitude,
+            longitude: longitude
+        }
     }
 
     componentDidMount() {
@@ -308,7 +381,9 @@ export default class Map extends Component {
             }
         }
 
-        this.getTrainInBetween();
+        const [trainAtStation, trainIsBetweenStation] = this.getTrainInBetween();
+        const trainLocations = this.getTrainLocation(trainAtStation, trainIsBetweenStation);
+        console.log(trainLocations);
         const position = [this.state.lat, this.state.lng];
         return (
             <LeafletMap ref={this.mapRef} center={position} zoom={this.state.zoom} >
@@ -350,6 +425,16 @@ export default class Map extends Component {
                                 {rails[index].stationName}
                             </Tooltip>
                         </Marker>
+                    })
+                }
+
+                {
+                    trainLocations.map((key, index) => {
+                        if(trainLocations[index].type === "Between Station") {
+                            const position = [trainLocations[index].coordinates.latitude, trainLocations[index].coordinates.longitude];
+                            console.log(position);
+                            return <Marker icon={trainSideIcon} position={position}></Marker>
+                        }
                     })
                 }
 

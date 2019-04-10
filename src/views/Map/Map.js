@@ -24,7 +24,10 @@ export default class Map extends Component {
             zoom: 13,
             stops: [],
             departures: [],
-            latlngs: []
+            latlngs: [],
+            rails: [],
+            stations: [],
+            trainLocations: []
         };
     }
 
@@ -254,7 +257,7 @@ export default class Map extends Component {
                         };
                         trainCoordinates.push(trainCoordinate);
                     } else {
-                        const result  = this.getInBetweenTrainCoordinates(trainIsBetweenStation[i].lastStationID, trainIsBetweenStation[i].nextStationID);
+                        const result = this.getInBetweenTrainCoordinates(trainIsBetweenStation[i].lastStationID, trainIsBetweenStation[i].nextStationID);
                         const trainCoordinate = {
                             type: "Between Station",
                             coordinates: result.coordinates,
@@ -355,7 +358,51 @@ export default class Map extends Component {
                     .then(response => {
                         this.setState({
                             departures: response
-                        })
+                        });
+
+                        let rails = [];
+                        let stations = [];
+                        for (let h in this.state.stops) {
+                            const latitude = this.state.stops[h].stop_latitude;
+                            const longitude = this.state.stops[h].stop_longitude;
+                            let toCity = "";
+                            let toCragieburn = "";
+                            let atPlatform = false;
+                            let stationName = this.state.stops[h].stop_name;
+                            for (let j in this.state.departures[h]) {
+                                let estimatedTime;
+                                estimatedTime = moment.utc(this.state.departures[h][j].estimated_departure_utc);
+                                const now = moment.utc();
+                                const difference = estimatedTime.diff(now, 'minutes');
+                                if (this.state.departures[h][j].direction_id === 1) {
+                                    toCity = difference;
+                                } else {
+                                    toCragieburn = difference;
+                                }
+                                if (this.state.departures[h][j].at_platform) {
+                                    atPlatform = true;
+                                }
+                            }
+
+                            let object;
+                            if (atPlatform) {
+                                object = { Icon: trainIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
+                                stations.push(object);
+                            } else {
+                                object = { Icon: railIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
+                                rails.push(object);
+                            }
+                        }
+
+                        const [trainAtStation, trainIsBetweenStation] = this.getTrainInBetween();
+                        const trainLocations = this.getTrainLocation(trainAtStation, trainIsBetweenStation);
+
+                        this.setState({
+                            rails: rails,
+                            stations: stations,
+                            trainLocations: trainLocations
+                        });
+
                     });
             });
 
@@ -366,54 +413,61 @@ export default class Map extends Component {
                     this.setState({
                         departures: response
                     });
+
+                    let rails = [];
+                    let stations = [];
+                    for (let h in this.state.stops) {
+                        const latitude = this.state.stops[h].stop_latitude;
+                        const longitude = this.state.stops[h].stop_longitude;
+                        let toCity = "";
+                        let toCragieburn = "";
+                        let atPlatform = false;
+                        let stationName = this.state.stops[h].stop_name;
+                        for (let j in this.state.departures[h]) {
+                            let estimatedTime;
+                            estimatedTime = moment.utc(this.state.departures[h][j].estimated_departure_utc);
+                            const now = moment.utc();
+                            const difference = estimatedTime.diff(now, 'minutes');
+                            if (this.state.departures[h][j].direction_id === 1) {
+                                toCity = difference;
+                            } else {
+                                toCragieburn = difference;
+                            }
+                            if (this.state.departures[h][j].at_platform) {
+                                atPlatform = true;
+                            }
+                        }
+
+                        let object;
+                        object = { Icon: railIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
+                        rails.push(object);
+                        // if (atPlatform) {
+                        //     object = { Icon: trainIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
+                        //     stations.push(object);
+                        // } else {
+                        //     object = { Icon: railIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
+                        //     rails.push(object);
+                        // }
+                    }
+
+                    const [trainAtStation, trainIsBetweenStation] = this.getTrainInBetween();
+                    const trainLocations = this.getTrainLocation(trainAtStation, trainIsBetweenStation);
+
+                    this.setState({
+                        rails: rails,
+                        stations: stations,
+                        trainLocations: trainLocations
+                    });
                 });
-        }, 30000);
+        }, 15000);
     }
 
-
     render() {
-
-
-        let rails = [];
-        let stations = [];
-        for (let h in this.state.stops) {
-            const latitude = this.state.stops[h].stop_latitude;
-            const longitude = this.state.stops[h].stop_longitude;
-            let toCity = "";
-            let toCragieburn = "";
-            let atPlatform = false;
-            let stationName = this.state.stops[h].stop_name;
-            for (let j in this.state.departures[h]) {
-                let estimatedTime;
-                estimatedTime = moment.utc(this.state.departures[h][j].estimated_departure_utc);
-                const now = moment.utc();
-                const difference = estimatedTime.diff(now, 'minutes');
-                if (this.state.departures[h][j].direction_id === 1) {
-                    toCity = difference;
-                } else {
-                    toCragieburn = difference;
-                }
-                if (this.state.departures[h][j].at_platform) {
-                    atPlatform = true;
-                }
-            }
-
-            let object;
-            if (atPlatform) {
-                object = { Icon: trainIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
-                stations.push(object);
-            } else {
-                object = { Icon: railIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
-                rails.push(object);
-            }
-        }
-
-        const [trainAtStation, trainIsBetweenStation] = this.getTrainInBetween();
-        console.log(trainAtStation);
-        console.log(trainIsBetweenStation);
-        const trainLocations = this.getTrainLocation(trainAtStation, trainIsBetweenStation);
-        console.log(trainLocations);
         const position = [this.state.lat, this.state.lng];
+        const stations = this.state.stations;
+        const rails = this.state.rails;
+        const trainLocations = this.state.trainLocations;
+        console.log(trainLocations);
         return (
             <LeafletMap ref={this.mapRef} center={position} zoom={this.state.zoom} >
                 <TileLayer
@@ -427,20 +481,6 @@ export default class Map extends Component {
                 /> */}
 
                 {/* Dynamically assign the Markers to the train stops */}
-                {
-                    stations.map((key, index) => {
-                        return <Marker icon={stations[index].Icon} position={stations[index].positions}>
-                            <Popup>
-                                <h1>{stations[index].stationName}</h1>
-                                <h2>To City: {stations[index].toCity}</h2>
-                                <h2>To Cragieburn: {stations[index].toCragieburn}</h2>
-                            </Popup>
-                            <Tooltip>
-                                {stations[index].stationName}
-                            </Tooltip>
-                        </Marker>
-                    })
-                }
 
                 {
                     rails.map((key, index) => {
@@ -472,6 +512,9 @@ export default class Map extends Component {
                                     {tooltip}
                                 </Tooltip>
                             </Marker>
+                        } else {
+                            const position = [trainLocations[index].coordinates.latitude, trainLocations[index].coordinates.longitude];
+                            return <Marker icon={trainIcon} position={position}></Marker>
                         }
                     })
                 }

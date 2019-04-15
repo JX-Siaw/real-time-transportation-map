@@ -158,13 +158,16 @@ export default class Map extends Component {
             }
         }
 
-        // console.log(runs);
+        console.log(runs);
         let trainIsBetweenStation = [];
         let trainAtStation = [];
+        let checkedRuns = [];
+
         for (let i in runs) {
             let estimatedTime;
             let departurewithShortestEstimatedTime;
             let lastStop;
+            console.log(i);
             for (let j in departures) {
                 for (let k in departures[j]) {
 
@@ -178,7 +181,12 @@ export default class Map extends Component {
                         //     console.log(departures[j][k]);
                         // }   
                         if (departures[j][k].at_platform) {
-                            trainAtStation.push(departures[j][k].stop_id);
+                            trainAtStation.push({
+                                stopID: departures[j][k].stop_id,
+                                runID: runs[i]
+                            });
+                            checkedRuns.push(runs[i]);
+                            break;
                         } else {
                             if (!estimatedTime) {
                                 estimatedTime = moment.utc(this.state.departures[j][k].estimated_departure_utc);
@@ -193,48 +201,53 @@ export default class Map extends Component {
                     }
                 }
             }
-            if (departurewithShortestEstimatedTime) {
-                if (estimatedTime.diff(moment.utc(), 'minutes') < 5) {
-                    for (let l in stops) {
-                        for (let p in trainAtStation) {
-                            if (trainAtStation[p] === stops[l].stop_id) {
-                                // console.log("There is a train at " + stops[l].stop_name);
-                            }
-                        }
 
-                        if (departurewithShortestEstimatedTime.stop_id === stops[l].stop_id) {
-                            if (departurewithShortestEstimatedTime.direction_id === 1 && stops[l].stop_sequence === 1) {
-                                // console.log("There is a train departing from Cragieburn heading to City");
-                            }
-                            else if (departurewithShortestEstimatedTime.direction_id === 2 && stops[l].stop_sequence === 21) {
-                                // console.log("There is a train departing from Flinders Street Station to Cragieburn");
-                            }
-                            else if (departurewithShortestEstimatedTime.direction_id === 1 && stops[l].stop_sequence > 1) {
-                                let index = l - 1;
-                                lastStop = stops[index];
-                                const trainsPair = {
-                                    lastStationID: lastStop.stop_id,
-                                    lastStationName: lastStop.stop_name,
-                                    nextStationID: stops[l].stop_id,
-                                    nextStationName: stops[l].stop_name
+            if (departurewithShortestEstimatedTime) {
+                console.log(checkedRuns);
+                let timeStamp = estimatedTime.diff(moment.utc(), 'minutes');
+                if (estimatedTime.diff(moment.utc(), 'minutes') < 5) {
+                    if (!checkedRuns.includes(runs[i])) {
+                        for (let l in stops) {
+                            if (departurewithShortestEstimatedTime.stop_id === stops[l].stop_id) {
+                                if (departurewithShortestEstimatedTime.direction_id === 1 && stops[l].stop_sequence === 1) {
+                                    // console.log("There is a train departing from Cragieburn heading to City");
                                 }
-                                trainIsBetweenStation.push(trainsPair);
-                                // console.log("There is a train between " + lastStop.stop_name + "(" + lastStop.stop_id + ")" + " and " + stops[l].stop_name + " heading to the city.");
-                            } else {
-                                if (stops[l].stop_sequence < 21) {
-                                    let index = parseInt(l) + 1;
+                                else if (departurewithShortestEstimatedTime.direction_id === 2 && stops[l].stop_sequence === 21) {
+                                    // console.log("There is a train departing from Flinders Street Station to Cragieburn");
+                                }
+                                else if (departurewithShortestEstimatedTime.direction_id === 1 && stops[l].stop_sequence > 1) {
+                                    let index = l - 1;
                                     lastStop = stops[index];
                                     const trainsPair = {
                                         lastStationID: lastStop.stop_id,
                                         lastStationName: lastStop.stop_name,
                                         nextStationID: stops[l].stop_id,
-                                        nextStationName: stops[l].stop_name
+                                        nextStationName: stops[l].stop_name,
+                                        arrivalTime: timeStamp,
+                                        runID: runs[i]
                                     }
                                     trainIsBetweenStation.push(trainsPair);
-                                    // console.log("There is a train between " + lastStop.stop_name + "(" + lastStop.stop_id + ")" + " and " + stops[l].stop_name + " heading to the Cragieburn with the runID " + runs[i]);
+                                    checkedRuns.push(runs[i]);
+                                    // console.log("There is a train between " + lastStop.stop_name + "(" + lastStop.stop_id + ")" + " and " + stops[l].stop_name + " heading to the city.");
+                                } else {
+                                    if (stops[l].stop_sequence < 21) {
+                                        let index = parseInt(l) + 1;
+                                        lastStop = stops[index];
+                                        const trainsPair = {
+                                            lastStationID: lastStop.stop_id,
+                                            lastStationName: lastStop.stop_name,
+                                            nextStationID: stops[l].stop_id,
+                                            nextStationName: stops[l].stop_name,
+                                            arrivalTime: timeStamp,
+                                            runID: runs[i]
+                                        }
+                                        trainIsBetweenStation.push(trainsPair);
+                                        checkedRuns.push(runs[i]);
+                                        // console.log("There is a train between " + lastStop.stop_name + "(" + lastStop.stop_id + ")" + " and " + stops[l].stop_name + " heading to the Cragieburn with the runID " + runs[i]);
+                                    }
                                 }
-                            }
 
+                            }
                         }
                     }
                 }
@@ -246,49 +259,46 @@ export default class Map extends Component {
     getTrainLocation(trainAtStation, trainIsBetweenStation) {
         let trainCoordinates = [];
 
-        if (trainAtStation.length > 0) {
-            for (let i in trainIsBetweenStation) {
-                for (let j in trainAtStation) {
-                    if (trainIsBetweenStation[i].lastStationID === trainAtStation[j]) {
-                        const coordinates = this.getTrainCoordinates(trainAtStation[j]);
-                        const trainCoordinate = {
-                            type: "At Station",
-                            coordinates: coordinates
-                        };
-                        trainCoordinates.push(trainCoordinate);
-                    } else {
-                        const result = this.getInBetweenTrainCoordinates(trainIsBetweenStation[i].lastStationID, trainIsBetweenStation[i].nextStationID);
-                        const trainCoordinate = {
-                            type: "Between Station",
-                            coordinates: result.coordinates,
-                            direction_id: result.direction_id
-                        };
-                        trainCoordinates.push(trainCoordinate);
-                    }
-                }
-            }
-        } else {
-            for (let i in trainIsBetweenStation) {
-                const result = this.getInBetweenTrainCoordinates(trainIsBetweenStation[i].lastStationID, trainIsBetweenStation[i].nextStationID);
+            for (let j in trainAtStation) {
+                const result = this.getTrainCoordinates(trainAtStation[j].stopID);
                 const trainCoordinate = {
-                    type: "Between Station",
-                    coordinates: result.coordinates,
-                    direction_id: result.direction_id
+                    type: "At Station",
+                    coordinates: result.stopCoordinates,
+                    name: result.stopName,
+                    runID: trainAtStation[j].runID
                 };
                 trainCoordinates.push(trainCoordinate);
             }
+
+        for (let i in trainIsBetweenStation) {
+            const result = this.getInBetweenTrainCoordinates(trainIsBetweenStation[i].lastStationID, trainIsBetweenStation[i].nextStationID);
+            const trainCoordinate = {
+                type: "Between Station",
+                coordinates: result.coordinates,
+                direction_id: result.direction_id,
+                arrivalTime: trainIsBetweenStation[i].arrivalTime,
+                runID: trainIsBetweenStation[i].runID
+            };
+            trainCoordinates.push(trainCoordinate);
         }
         return trainCoordinates;
     }
 
     getTrainCoordinates(stopID) {
+        let stopCoordinates;
+        let stopName;
         for (let i in this.state.stops) {
             if (this.state.stops[i].stop_id === stopID) {
-                return {
+                stopCoordinates = {
                     latitude: this.state.stops[i].stop_latitude,
                     longitude: this.state.stops[i].stop_longitude
                 };
+                stopName = this.state.stops[i].stop_name;
             }
+        }
+        return {
+            stopCoordinates: stopCoordinates,
+            stopName: stopName
         }
     }
 
@@ -459,7 +469,7 @@ export default class Map extends Component {
                         trainLocations: trainLocations
                     });
                 });
-        }, 15000);
+        }, 30000);
     }
 
     render() {

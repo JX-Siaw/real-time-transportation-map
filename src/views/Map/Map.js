@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import { Map as LeafletMap, TileLayer, Marker, Popup, Tooltip, Polyline } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-markercluster';
 // import worldGeoJSON from 'geojson-world-map';
 
 import './Map.css';
@@ -7,7 +8,7 @@ import './Map.css';
 import { railIcon } from '../../components/leaflet-icons/rail-icon/rail-icon';
 import { trainIcon } from '../../components/leaflet-icons/train-icon/train-icon';
 import { trainSideIcon } from '../../components/leaflet-icons/train-icon/train-side-icon';
-import { deepStrictEqual } from 'assert';
+import RotatedMarker from '../../components/leaflet-icons/RotatedMarker';
 
 const axios = require('axios');
 const crypto = require('crypto');
@@ -41,7 +42,10 @@ export default class Map extends Component {
         axios.get(baseURL + request + '&signature=' + signature)
             .then(response => {
                 console.log(response);
-            });
+            })
+            .catch(error => {
+                console.log(error);
+            })
     }
 
     // To sort the array of stops according to the stop_sequence_id
@@ -85,6 +89,9 @@ export default class Map extends Component {
         const departures = await axios.get(baseURL + request + '&signature=' + signature)
             .then(response => {
                 return response.data.departures
+            })
+            .catch(error => {
+                console.log(error);
             })
         return departures;
     }
@@ -259,16 +266,16 @@ export default class Map extends Component {
     getTrainLocation(trainAtStation, trainIsBetweenStation) {
         let trainCoordinates = [];
 
-            for (let j in trainAtStation) {
-                const result = this.getTrainCoordinates(trainAtStation[j].stopID);
-                const trainCoordinate = {
-                    type: "At Station",
-                    coordinates: result.stopCoordinates,
-                    name: result.stopName,
-                    runID: trainAtStation[j].runID
-                };
-                trainCoordinates.push(trainCoordinate);
-            }
+        for (let j in trainAtStation) {
+            const result = this.getTrainCoordinates(trainAtStation[j].stopID);
+            const trainCoordinate = {
+                type: "At Station",
+                coordinates: result.stopCoordinates,
+                name: result.stopName,
+                runID: trainAtStation[j].runID
+            };
+            trainCoordinates.push(trainCoordinate);
+        }
 
         for (let i in trainIsBetweenStation) {
             const result = this.getInBetweenTrainCoordinates(trainIsBetweenStation[i].lastStationID, trainIsBetweenStation[i].nextStationID);
@@ -324,14 +331,24 @@ export default class Map extends Component {
                 };
             }
         }
-        const latitude = (lastStopCoords.latitude + nextStopCoords.latitude) / 2;
-        const longitude = (lastStopCoords.longitude + nextStopCoords.longitude) / 2;
 
         let direction_id;
         if (nextStop.stop_sequence > lastStop.stop_sequence) {
-            direction_id = 1;
+            direction_id = 1; // To city
         } else {
-            direction_id = 2;
+            direction_id = 2; // To cragieburn
+        }
+
+
+        let latitude;
+        let longitude;
+
+        if (direction_id === 1) {
+            latitude = (0.75 * lastStopCoords.latitude + 0.25 * nextStopCoords.latitude);
+            longitude = (0.75 * lastStopCoords.longitude + 0.25 * nextStopCoords.longitude);
+        } else {
+            latitude = (0.75 * lastStopCoords.latitude + 0.25 * nextStopCoords.latitude);
+            longitude = (0.75 * lastStopCoords.longitude + 0.25 * nextStopCoords.longitude);
         }
 
         return {
@@ -395,13 +412,9 @@ export default class Map extends Component {
                             }
 
                             let object;
-                            if (atPlatform) {
-                                object = { Icon: trainIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
-                                stations.push(object);
-                            } else {
-                                object = { Icon: railIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
-                                rails.push(object);
-                            }
+
+                            object = { Icon: railIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
+                            rails.push(object);
                         }
 
                         const [trainAtStation, trainIsBetweenStation] = this.getTrainInBetween();
@@ -479,7 +492,7 @@ export default class Map extends Component {
         const trainLocations = this.state.trainLocations;
         console.log(trainLocations);
         return (
-            <LeafletMap ref={this.mapRef} center={position} zoom={this.state.zoom} >
+            <LeafletMap ref={this.mapRef} center={position} zoom={this.state.zoom} maxZoom={15}>
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     // url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
@@ -492,42 +505,70 @@ export default class Map extends Component {
 
                 {/* Dynamically assign the Markers to the train stops */}
 
-                {
-                    rails.map((key, index) => {
-                        return <Marker icon={rails[index].Icon} position={rails[index].positions}>
-                            <Popup>
-                                <h1>{rails[index].stationName}</h1>
-                                <h2>To City: {rails[index].toCity}</h2>
-                                <h2>To Cragieburn: {rails[index].toCragieburn}</h2>
-                            </Popup>
-                            <Tooltip>
-                                {rails[index].stationName}
-                            </Tooltip>
-                        </Marker>
-                    })
-                }
-
-                {
-                    trainLocations.map((key, index) => {
-                        if (trainLocations[index].type === "Between Station") {
-                            const position = [trainLocations[index].coordinates.latitude, trainLocations[index].coordinates.longitude];
-                            let tooltip;
-                            if (trainLocations[index].direction_id === 1) {
-                                tooltip = "Heading to City";
-                            } else {
-                                tooltip = "Heading to Cragieburn";
-                            }
-                            return <Marker icon={trainSideIcon} position={position}>
+                <MarkerClusterGroup maxClusterRadius={20}>
+                    {
+                        rails.map((key, index) => {
+                            return <Marker icon={rails[index].Icon} position={rails[index].positions}>
+                                <Popup className="popup">
+                                    <h1>{rails[index].stationName}</h1>
+                                    <h2>To City: {rails[index].toCity}</h2>
+                                    <h2>To Cragieburn: {rails[index].toCragieburn}</h2>
+                                </Popup>
                                 <Tooltip>
-                                    {tooltip}
+                                    {rails[index].stationName}
                                 </Tooltip>
                             </Marker>
-                        } else {
-                            const position = [trainLocations[index].coordinates.latitude, trainLocations[index].coordinates.longitude];
-                            return <Marker icon={trainIcon} position={position}></Marker>
-                        }
-                    })
-                }
+                        })
+                    }
+                </MarkerClusterGroup>
+
+                <MarkerClusterGroup maxClusterRadius={40}>
+                    {
+                        trainLocations.map((key, index) => {
+                            if (trainLocations[index].type === "Between Station") {
+                                const position = [trainLocations[index].coordinates.latitude, trainLocations[index].coordinates.longitude];
+                                let tooltip;
+                                if (trainLocations[index].direction_id === 1) {
+                                    tooltip = "Heading to City";
+                                    return <RotatedMarker icon={trainSideIcon} position={position} rotationAngle={90} rotationOrigin={'center'}>
+                                        <Tooltip>
+                                            {tooltip}
+                                        </Tooltip>
+                                    </RotatedMarker>
+                                } else {
+                                    tooltip = "Heading to Cragieburn";
+                                    return <RotatedMarker icon={trainSideIcon} position={position} rotationAngle={-90} rotationOrigin={'center'}>
+                                        <Tooltip>
+                                            {tooltip}
+                                        </Tooltip>
+                                    </RotatedMarker>
+                                }
+
+                            }
+                        })
+                    }
+                </MarkerClusterGroup>
+
+                <MarkerClusterGroup maxClusterRadius={20}>
+                    {
+                        trainLocations.map((key, index) => {
+                            if (trainLocations[index].type === "At Station") {
+                                const position = [trainLocations[index].coordinates.latitude, trainLocations[index].coordinates.longitude];
+                                let tooltip;
+                                if (trainLocations[index].direction_id === 1) {
+                                    tooltip = "Heading to City";
+                                } else {
+                                    tooltip = "Heading to Cragieburn";
+                                }
+                                return <Marker icon={trainIcon} position={position}>
+                                    <Tooltip>
+                                        {tooltip}
+                                    </Tooltip>
+                                </Marker>
+                            }
+                        })
+                    }
+                </MarkerClusterGroup>
 
                 {
                     this.state.stops.map((key, index) => {

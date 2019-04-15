@@ -9,7 +9,7 @@ const trainIcon = new L.icon({
     shadowSize: null,
     shadowAnchor: null,
     iconSize: [40, 55],
-    className: 'leaflet-div-icon'
+    className: 'train-icon'
 });
 
 export { trainIcon };

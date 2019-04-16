@@ -279,11 +279,31 @@ export default class Map extends Component {
 
         for (let i in trainIsBetweenStation) {
             const result = this.getInBetweenTrainCoordinates(trainIsBetweenStation[i].lastStationID, trainIsBetweenStation[i].nextStationID);
+            const arrivalTime = trainIsBetweenStation[i].arrivalTime;
+            let latitude;
+            let longitude;
+            console.log(arrivalTime);
+            if(arrivalTime < 1) {
+            latitude = (0.25 * result.lastStopCoords.latitude + 0.75 * result.nextStopCoords.latitude);
+            longitude = (0.25 * result.lastStopCoords.longitude + 0.75 * result.nextStopCoords.longitude);                
+            } else if (arrivalTime < 2) {
+                latitude = (0.5 * result.lastStopCoords.latitude + 0.5 * result.nextStopCoords.latitude);
+                longitude = (0.5 * result.lastStopCoords.longitude + 0.5 * result.nextStopCoords.longitude);                     
+            } else {
+            latitude = (0.75 * result.lastStopCoords.latitude + 0.25 * result.nextStopCoords.latitude);
+            longitude = (0.75 * result.lastStopCoords.longitude + 0.25 * result.nextStopCoords.longitude);                
+            }
+
+            const coordinates = {
+                latitude: latitude,
+                longitude: longitude
+            };
+
             const trainCoordinate = {
                 type: "Between Station",
-                coordinates: result.coordinates,
+                coordinates: coordinates,
                 direction_id: result.direction_id,
-                arrivalTime: trainIsBetweenStation[i].arrivalTime,
+                arrivalTime: arrivalTime,
                 runID: trainIsBetweenStation[i].runID
             };
             trainCoordinates.push(trainCoordinate);
@@ -343,19 +363,17 @@ export default class Map extends Component {
         let latitude;
         let longitude;
 
-        if (direction_id === 1) {
-            latitude = (0.75 * lastStopCoords.latitude + 0.25 * nextStopCoords.latitude);
-            longitude = (0.75 * lastStopCoords.longitude + 0.25 * nextStopCoords.longitude);
-        } else {
-            latitude = (0.75 * lastStopCoords.latitude + 0.25 * nextStopCoords.latitude);
-            longitude = (0.75 * lastStopCoords.longitude + 0.25 * nextStopCoords.longitude);
-        }
+        // if (direction_id === 1) {
+        //     latitude = (0.75 * lastStopCoords.latitude + 0.25 * nextStopCoords.latitude);
+        //     longitude = (0.75 * lastStopCoords.longitude + 0.25 * nextStopCoords.longitude);
+        // } else {
+        //     latitude = (0.75 * lastStopCoords.latitude + 0.25 * nextStopCoords.latitude);
+        //     longitude = (0.75 * lastStopCoords.longitude + 0.25 * nextStopCoords.longitude);
+        // }
 
         return {
-            coordinates: {
-                latitude: latitude,
-                longitude: longitude
-            },
+            lastStopCoords: lastStopCoords,
+            nextStopCoords: nextStopCoords,
             direction_id: direction_id
         }
     }

@@ -193,15 +193,14 @@ export default class Map extends Component {
                                 runID: runs[i]
                             });
                             checkedRuns.push(runs[i]);
-                            break;
                         } else {
                             if (!estimatedTime) {
-                                estimatedTime = moment.utc(this.state.departures[j][k].estimated_departure_utc);
-                                departurewithShortestEstimatedTime = this.state.departures[j][k];
+                                estimatedTime = moment.utc(departures[j][k].estimated_departure_utc);
+                                departurewithShortestEstimatedTime = departures[j][k];
                             } else {
-                                if (estimatedTime.isAfter(moment.utc(this.state.departures[j][k].estimated_departure_utc))) {
-                                    estimatedTime = moment.utc(this.state.departures[j][k].estimated_departure_utc);
-                                    departurewithShortestEstimatedTime = this.state.departures[j][k];
+                                if (estimatedTime.isAfter(moment.utc(departures[j][k].estimated_departure_utc))) {
+                                    estimatedTime = moment.utc(departures[j][k].estimated_departure_utc);
+                                    departurewithShortestEstimatedTime = departures[j][k];
                                 }
                             }
                         }
@@ -414,17 +413,17 @@ export default class Map extends Component {
                             let toCragieburn = "";
                             let atPlatform = false;
                             let stationName = this.state.stops[h].stop_name;
-                            for (let j in this.state.departures[h]) {
+                            for (let j in response[h]) {
                                 let estimatedTime;
-                                estimatedTime = moment.utc(this.state.departures[h][j].estimated_departure_utc);
+                                estimatedTime = moment.utc(response[h][j].estimated_departure_utc);
                                 const now = moment.utc();
                                 const difference = estimatedTime.diff(now, 'minutes');
-                                if (this.state.departures[h][j].direction_id === 1) {
+                                if (response[h][j].direction_id === 1) {
                                     toCity = difference;
                                 } else {
                                     toCragieburn = difference;
                                 }
-                                if (this.state.departures[h][j].at_platform) {
+                                if (response[h][j].at_platform) {
                                     atPlatform = true;
                                 }
                             }
@@ -464,17 +463,17 @@ export default class Map extends Component {
                         let toCragieburn = "";
                         let atPlatform = false;
                         let stationName = this.state.stops[h].stop_name;
-                        for (let j in this.state.departures[h]) {
+                        for (let j in response[h]) {
                             let estimatedTime;
-                            estimatedTime = moment.utc(this.state.departures[h][j].estimated_departure_utc);
+                            estimatedTime = moment.utc(response[h][j].estimated_departure_utc);
                             const now = moment.utc();
                             const difference = estimatedTime.diff(now, 'minutes');
-                            if (this.state.departures[h][j].direction_id === 1) {
+                            if (response[h][j].direction_id === 1) {
                                 toCity = difference;
                             } else {
                                 toCragieburn = difference;
                             }
-                            if (this.state.departures[h][j].at_platform) {
+                            if (response[h][j].at_platform) {
                                 atPlatform = true;
                             }
                         }
@@ -500,7 +499,7 @@ export default class Map extends Component {
                         trainLocations: trainLocations
                     });
                 });
-        }, 30000);
+        }, 15000);
     }
 
     render() {

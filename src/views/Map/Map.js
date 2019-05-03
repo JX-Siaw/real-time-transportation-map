@@ -5,11 +5,16 @@ import MarkerClusterGroup from 'react-leaflet-markercluster';
 
 import './Map.css';
 
+// Importing Submodules
+import * as API from '../../modules/PTVapi';
+
+// Importing Components
 import { railIcon } from '../../components/leaflet-icons/rail-icon/rail-icon';
 import { trainIcon } from '../../components/leaflet-icons/train-icon/train-icon';
 import { trainSideIcon } from '../../components/leaflet-icons/train-icon/train-side-icon';
 import RotatedMarker from '../../components/leaflet-icons/RotatedMarker';
 
+// Importing Packages
 const axios = require('axios');
 const crypto = require('crypto');
 const moment = require('moment');
@@ -27,25 +32,12 @@ export default class Map extends Component {
             departures: [],
             latlngs: [],
             rails: [],
-            stations: [],
             trainLocations: []
         };
     }
 
     encryptSignature(key, url) {
         return crypto.createHmac('sha1', key).update(url).digest('hex');
-    }
-
-    PTVApiHealhCheck(baseURL, key, timestamp, devid) {
-        const request = '/v2/healthcheck?timestamp=' + timestamp + '&devid=' + devid;
-        const signature = this.encryptSignature(key, request);
-        axios.get(baseURL + request + '&signature=' + signature)
-            .then(response => {
-                console.log(response);
-            })
-            .catch(error => {
-                console.log(error);
-            })
     }
 
     // To sort the array of stops according to the stop_sequence_id
@@ -63,24 +55,24 @@ export default class Map extends Component {
         return comparison;
     }
 
-    async getStops(baseURL, key, devid, route_id) {
-        const request = '/v3/stops/route/' + route_id + '/route_type/0?direction_id=1&devid=' + devid;
-        const signature = this.encryptSignature(key, request);
+    // async getStops(baseURL, key, devid, route_id) {
+    //     const request = '/v3/stops/route/' + route_id + '/route_type/0?direction_id=1&devid=' + devid;
+    //     const signature = this.encryptSignature(key, request);
 
-        const stops = await axios.get(baseURL + request + '&signature=' + signature)
-            .then(response => {
-                const stops = response.data.stops.sort(this.compareStops);
-                return stops;
-            })
-            .catch(error => {
-                console.log(error);
-            })
+    //     const stops = await axios.get(baseURL + request + '&signature=' + signature)
+    //         .then(response => {
+    //             const stops = response.data.stops.sort(this.compareStops);
+    //             return stops;
+    //         })
+    //         .catch(error => {
+    //             console.log(error);
+    //         })
 
-        this.setState({
-            stops: stops
-        });
-        return stops
-    }
+    //     this.setState({
+    //         stops: stops
+    //     });
+    //     return stops
+    // }
 
     async getDepartures(baseURL, key, devid, route_id, stop_id) {
         const request = '/v3/departures/route_type/0/stop/' + stop_id + '/route/' + route_id + '?look_backwards=false&max_results=1&devid=' + devid;
@@ -282,15 +274,15 @@ export default class Map extends Component {
             let latitude;
             let longitude;
             console.log(arrivalTime);
-            if(arrivalTime < 1) {
-            latitude = (0.25 * result.lastStopCoords.latitude + 0.75 * result.nextStopCoords.latitude);
-            longitude = (0.25 * result.lastStopCoords.longitude + 0.75 * result.nextStopCoords.longitude);                
+            if (arrivalTime < 1) {
+                latitude = (0.25 * result.lastStopCoords.latitude + 0.75 * result.nextStopCoords.latitude);
+                longitude = (0.25 * result.lastStopCoords.longitude + 0.75 * result.nextStopCoords.longitude);
             } else if (arrivalTime < 2) {
                 latitude = (0.5 * result.lastStopCoords.latitude + 0.5 * result.nextStopCoords.latitude);
-                longitude = (0.5 * result.lastStopCoords.longitude + 0.5 * result.nextStopCoords.longitude);                     
+                longitude = (0.5 * result.lastStopCoords.longitude + 0.5 * result.nextStopCoords.longitude);
             } else {
-            latitude = (0.75 * result.lastStopCoords.latitude + 0.25 * result.nextStopCoords.latitude);
-            longitude = (0.75 * result.lastStopCoords.longitude + 0.25 * result.nextStopCoords.longitude);                
+                latitude = (0.75 * result.lastStopCoords.latitude + 0.25 * result.nextStopCoords.latitude);
+                longitude = (0.75 * result.lastStopCoords.longitude + 0.25 * result.nextStopCoords.longitude);
             }
 
             const coordinates = {
@@ -385,129 +377,141 @@ export default class Map extends Component {
         //     }
         // }, 10000);
 
-        let now = moment.utc().format();
-        const key = 'b4ba8648-d112-4cf5-891d-8533756cef97';
-        const id = '3001097';
-        const baseURL = 'https://timetableapi.ptv.vic.gov.au';
+        // let now = moment.utc().format();
+        // const key = 'b4ba8648-d112-4cf5-891d-8533756cef97';
+        // const id = '3001097';
+        // const baseURL =  'https://timetableapi.ptv.vic.gov.au';
 
         // Health check
-        this.PTVApiHealhCheck(baseURL, key, now, id);
+        // this.PTVApiHealhCheck(baseURL, key, now, id);
+        API.healthCheck();
+        API.getStops(3)
+            .then(result => {
+                console.log(result);
+                this.setState({
+                    stops: result
+                });
+            })
+        // this.setState({
+        //     stops: stops
+        // });
 
         // Kensington Stop Id = 1108
         // Broadmeadows Route Id = 3    
 
-        this.getStops(baseURL, key, id, 3)
-            .then(result => {
-                this.updateDepartures(baseURL, key, id)
-                    .then(response => {
-                        this.setState({
-                            departures: response
-                        });
+        // this.getStops(baseURL, key, id, 3)
+        //     .then(result => {
+        //         this.updateDepartures(baseURL, key, id)
+        //             .then(response => {
+        //                 this.setState({
+        //                     departures: response
+        //                 });
 
-                        let rails = [];
-                        let stations = [];
-                        for (let h in this.state.stops) {
-                            const latitude = this.state.stops[h].stop_latitude;
-                            const longitude = this.state.stops[h].stop_longitude;
-                            let toCity = "";
-                            let toCragieburn = "";
-                            let atPlatform = false;
-                            let stationName = this.state.stops[h].stop_name;
-                            for (let j in response[h]) {
-                                let estimatedTime;
-                                estimatedTime = moment.utc(response[h][j].estimated_departure_utc);
-                                const now = moment.utc();
-                                const difference = estimatedTime.diff(now, 'minutes');
-                                if (response[h][j].direction_id === 1) {
-                                    toCity = difference;
-                                } else {
-                                    toCragieburn = difference;
-                                }
-                                if (response[h][j].at_platform) {
-                                    atPlatform = true;
-                                }
-                            }
+        //                 let rails = [];
+        //                 let stations = [];
+        //                 for (let h in this.state.stops) {
+        //                     const latitude = this.state.stops[h].stop_latitude;
+        //                     const longitude = this.state.stops[h].stop_longitude;
+        //                     let toCity = "";
+        //                     let toCragieburn = "";
+        //                     let atPlatform = false;
+        //                     let stationName = this.state.stops[h].stop_name;
+        //                     for (let j in response[h]) {
+        //                         let estimatedTime;
+        //                         estimatedTime = moment.utc(response[h][j].estimated_departure_utc);
+        //                         const now = moment.utc();
+        //                         const difference = estimatedTime.diff(now, 'minutes');
+        //                         if (response[h][j].direction_id === 1) {
+        //                             toCity = difference;
+        //                         } else {
+        //                             toCragieburn = difference;
+        //                         }
+        //                         if (response[h][j].at_platform) {
+        //                             atPlatform = true;
+        //                         }
+        //                     }
 
-                            let object;
+        //                     let object;
 
-                            object = { Icon: railIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
-                            rails.push(object);
-                        }
+        //                     object = { Icon: railIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
+        //                     rails.push(object);
+        //                 }
 
-                        const [trainAtStation, trainIsBetweenStation] = this.getTrainInBetween();
-                        const trainLocations = this.getTrainLocation(trainAtStation, trainIsBetweenStation);
+        //                 const [trainAtStation, trainIsBetweenStation] = this.getTrainInBetween();
+        //                 const trainLocations = this.getTrainLocation(trainAtStation, trainIsBetweenStation);
 
-                        this.setState({
-                            rails: rails,
-                            stations: stations,
-                            trainLocations: trainLocations
-                        });
+        //                 this.setState({
+        //                     rails: rails,
+        //                     stations: stations,
+        //                     trainLocations: trainLocations
+        //                 });
 
-                    });
-            });
+        //             });
+        //     });
 
-        setInterval(() => {
-            console.log("Updating Departures");
-            this.updateDepartures(baseURL, key, id)
-                .then(response => {
-                    this.setState({
-                        departures: response
-                    });
+        // setInterval(() => {
+        //     console.log("Updating Departures");
+        //     this.updateDepartures(baseURL, key, id)
+        //         .then(response => {
+        //             this.setState({
+        //                 departures: response
+        //             });
 
-                    let rails = [];
-                    let stations = [];
-                    for (let h in this.state.stops) {
-                        const latitude = this.state.stops[h].stop_latitude;
-                        const longitude = this.state.stops[h].stop_longitude;
-                        let toCity = "";
-                        let toCragieburn = "";
-                        let atPlatform = false;
-                        let stationName = this.state.stops[h].stop_name;
-                        for (let j in response[h]) {
-                            let estimatedTime;
-                            estimatedTime = moment.utc(response[h][j].estimated_departure_utc);
-                            const now = moment.utc();
-                            const difference = estimatedTime.diff(now, 'minutes');
-                            if (response[h][j].direction_id === 1) {
-                                toCity = difference;
-                            } else {
-                                toCragieburn = difference;
-                            }
-                            if (response[h][j].at_platform) {
-                                atPlatform = true;
-                            }
-                        }
+        //             let rails = [];
+        //             let stations = [];
+        //             for (let h in this.state.stops) {
+        //                 const latitude = this.state.stops[h].stop_latitude;
+        //                 const longitude = this.state.stops[h].stop_longitude;
+        //                 let toCity = "";
+        //                 let toCragieburn = "";
+        //                 let atPlatform = false;
+        //                 let stationName = this.state.stops[h].stop_name;
+        //                 for (let j in response[h]) {
+        //                     let estimatedTime;
+        //                     estimatedTime = moment.utc(response[h][j].estimated_departure_utc);
+        //                     const now = moment.utc();
+        //                     const difference = estimatedTime.diff(now, 'minutes');
+        //                     if (response[h][j].direction_id === 1) {
+        //                         toCity = difference;
+        //                     } else {
+        //                         toCragieburn = difference;
+        //                     }
+        //                     if (response[h][j].at_platform) {
+        //                         atPlatform = true;
+        //                     }
+        //                 }
 
-                        let object;
-                        object = { Icon: railIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
-                        rails.push(object);
-                        // if (atPlatform) {
-                        //     object = { Icon: trainIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
-                        //     stations.push(object);
-                        // } else {
-                        //     object = { Icon: railIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
-                        //     rails.push(object);
-                        // }
-                    }
+        //                 let object;
+        //                 object = { Icon: railIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
+        //                 rails.push(object);
+        //                 // if (atPlatform) {
+        //                 //     object = { Icon: trainIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
+        //                 //     stations.push(object);
+        //                 // } else {
+        //                 //     object = { Icon: railIcon, positions: [latitude, longitude], stationName: stationName, toCity: toCity, toCragieburn: toCragieburn };
+        //                 //     rails.push(object);
+        //                 // }
+        //             }
 
-                    const [trainAtStation, trainIsBetweenStation] = this.getTrainInBetween();
-                    const trainLocations = this.getTrainLocation(trainAtStation, trainIsBetweenStation);
+        //             const [trainAtStation, trainIsBetweenStation] = this.getTrainInBetween();
+        //             const trainLocations = this.getTrainLocation(trainAtStation, trainIsBetweenStation);
 
-                    this.setState({
-                        rails: rails,
-                        stations: stations,
-                        trainLocations: trainLocations
-                    });
-                });
-        }, 15000);
+        //             this.setState({
+        //                 rails: rails,
+        //                 stations: stations,
+        //                 trainLocations: trainLocations
+        //             });
+        //         });
+        // }, 15000);
     }
 
     render() {
         const position = [this.state.lat, this.state.lng];
-        const stations = this.state.stations;
-        const rails = this.state.rails;
-        const trainLocations = this.state.trainLocations;
-        console.log(trainLocations);
+        const stations = this.state.stops;
+
+        // const rails = this.state.rails;
+        // const trainLocations = this.state.trainLocations;
+        // console.log(trainLocations);
         return (
             <LeafletMap ref={this.mapRef} center={position} zoom={this.state.zoom} maxZoom={15}>
                 <TileLayer
@@ -522,7 +526,7 @@ export default class Map extends Component {
 
                 {/* Dynamically assign the Markers to the train stops */}
 
-                <MarkerClusterGroup maxClusterRadius={20}>
+                {/* <MarkerClusterGroup maxClusterRadius={20}>
                     {
                         rails.map((key, index) => {
                             return <Marker icon={rails[index].Icon} position={rails[index].positions}>
@@ -585,13 +589,43 @@ export default class Map extends Component {
                             }
                         })
                     }
-                </MarkerClusterGroup>
+                </MarkerClusterGroup> */}
 
                 {
-                    this.state.stops.map((key, index) => {
-                        if (index < this.state.stops.length - 1) {
+                    stations.map((key, index) => {
+                        const coordinates = [stations[index].stop_latitude, stations[index].stop_longitude];
+                        return <Marker icon={railIcon} position={coordinates}>
+                            <Tooltip>
+                                {stations[index].stop_name}
+                            </Tooltip>
+                        </Marker>
+                    })
+                }
+                {
+                    stations.map((key, index) => {
+                        if (index < stations.length - 1 && stations[index].stop_sequence < 19) {
                             let nextIndex = index + 1;
-                            const positions = [[this.state.stops[index].stop_latitude, this.state.stops[index].stop_longitude], [this.state.stops[nextIndex].stop_latitude, this.state.stops[nextIndex].stop_longitude]];
+                            const positions = [[stations[index].stop_latitude, stations[index].stop_longitude], [stations[nextIndex].stop_latitude, stations[nextIndex].stop_longitude]];
+                            return <Polyline positions={positions} />
+                        }
+                        if (index < stations.length - 1 && stations[index].stop_sequence === 19) {
+                            let nextIndex = 20;
+                            const positions = [[stations[index].stop_latitude, stations[index].stop_longitude], [stations[nextIndex].stop_latitude, stations[nextIndex].stop_longitude]];
+                            return <Polyline positions={positions} />
+                        }
+                    })
+                }
+
+                {
+                    stations.map((key, index) => {
+                        if (index < stations.length - 1 && stations[index].stop_sequence === 16) {
+                            let nextIndex = 19;
+                            const positions = [[stations[index].stop_latitude, stations[index].stop_longitude], [stations[nextIndex].stop_latitude, stations[nextIndex].stop_longitude]];
+                            return <Polyline positions={positions} />
+                        }
+                        if (index < stations.length - 1 && stations[index].stop_sequence === 20) {
+                            let nextIndex = index + 1;
+                            const positions = [[stations[index].stop_latitude, stations[index].stop_longitude], [stations[nextIndex].stop_latitude, stations[nextIndex].stop_longitude]];
                             return <Polyline positions={positions} />
                         }
                     })

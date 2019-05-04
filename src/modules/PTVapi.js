@@ -56,7 +56,7 @@ export async function getStops(route_id) {
     return stops;
 }
 
-export async function getDepartures(route_id, stop_id) {
+async function getDeparturesForStop(route_id, stop_id) {
     const request = '/v3/departures/route_type/0/stop/' + stop_id + '/route/' + route_id + '?look_backwards=false&max_results=1&devid=' + devID;
     const signature = encryptSignature(request);
 
@@ -67,5 +67,22 @@ export async function getDepartures(route_id, stop_id) {
         .catch(error => {
             console.log(error);
         })
+    return departures;
+}
+
+export async function getDeparturesForRoute(route_id, stops) {
+    let departures = [];
+    for (let i in stops) {
+        const stop_id = stops[i].stop_id;
+
+        departures.push(await getDeparturesForStop(route_id, stop_id)
+            .then(response => {
+                return response;
+            })
+            .catch(error => {
+                console.log(error);
+            })
+        )
+    }
     return departures;
 }

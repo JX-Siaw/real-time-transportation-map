@@ -7,6 +7,7 @@ import './Map.css';
 
 // Importing Submodules
 import * as API from '../../modules/PTVapi';
+import * as Departures from '../../modules/departures';
 
 // Importing Components
 import { railIcon } from '../../components/leaflet-icons/rail-icon/rail-icon';
@@ -370,27 +371,19 @@ export default class Map extends Component {
     }
 
     componentDidMount() {
-        // setTimeout(() => {
-        //     if (this.mapRef.current) {
-        //         console.log("Update");
-        //         this.mapRef.current.leafletElement.invalidateSize();
-        //     }
-        // }, 10000);
-
-        // let now = moment.utc().format();
-        // const key = 'b4ba8648-d112-4cf5-891d-8533756cef97';
-        // const id = '3001097';
-        // const baseURL =  'https://timetableapi.ptv.vic.gov.au';
-
-        // Health check
-        // this.PTVApiHealhCheck(baseURL, key, now, id);
         API.healthCheck();
         API.getStops(3)
             .then(result => {
-                console.log(result);
                 this.setState({
                     stops: result
                 });
+                let result2 = API.getDeparturesForRoute(3, result)
+                    .then(response => {
+                        this.setState({
+                            departures: response
+                        })
+                    })
+                let finalResult = [result, result2]
             })
         // this.setState({
         //     stops: stops
@@ -508,6 +501,18 @@ export default class Map extends Component {
     render() {
         const position = [this.state.lat, this.state.lng];
         const stations = this.state.stops;
+        const departures = this.state.departures;
+
+        if (stations.length > 0)
+            console.log(stations);
+        if (departures.length > 0) {
+            console.log(departures);
+            const runs = Departures.getUniqueRuns(departures, 3);
+            const filteredRuns = Departures.getDeparturesForRuns(runs, departures);
+            console.log(filteredRuns);
+        }
+
+
 
         // const rails = this.state.rails;
         // const trainLocations = this.state.trainLocations;

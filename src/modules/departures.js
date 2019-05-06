@@ -1,8 +1,20 @@
 const moment = require('moment');
 
 function compareDeparturesTime(a, b) {
-    const aTime = moment.utc(a.estimated_departure_utc);
-    const bTime = moment.utc(b.estimated_departure_utc);
+    let aTime, bTime;
+    if (a.estimated_departure_utc) {
+        aTime = moment.utc(a.estimated_departure_utc);
+    }
+    else {
+        aTime = moment.utc(a.scheduled_departure_utc);
+    }
+
+    if (b.estimated_departure_utc) {
+        bTime = moment.utc(b.estimated_departure_utc);
+    }
+    else {
+        bTime = moment.utc(b.scheduled_departure_utc);
+    }
 
     let comparison = 0;
     if (aTime.isAfter(bTime)) {
@@ -36,24 +48,40 @@ export function getDeparturesForRuns(runs, departures) {
     for (let a in runs) {
         run_id = runs[a];
         let filteredDepartures = [];
+        let direction_id;
 
         for (let i in departures) {
             for (let j in departures[i]) {
                 if (departures[i][j].run_id === run_id) {
                     filteredDepartures.push(departures[i][j]);
+
+                    if (!direction_id) {
+                        direction_id = departures[i][j].direction_id;
+                    }
                 }
             }
         }
 
-        filteredDepartures.sort(compareDeparturesTime);
+        if (filteredDepartures.length > 0) {
+            filteredDepartures.sort(compareDeparturesTime);
 
-        filteredRuns.push({
-            run_id: run_id,
-            departures: filteredDepartures
-        });
+            filteredRuns.push({
+                run_id: run_id,
+                direction_id: direction_id,
+                departures: filteredDepartures
+            });
+
+        }
 
     }
 
     return filteredRuns;
 
+}
+
+export function determineRunCoordinates(scalar, previousStopCoordinates, nextStopCoordinates) {
+    const xCoordinate = (scalar * previousStopCoordinates[0]) + ((1 - scalar) * nextStopCoordinates[0]);
+    const yCoordinate = (scalar * previousStopCoordinates[1]) + ((1 - scalar) * nextStopCoordinates[1]);
+
+    return [xCoordinate, yCoordinate];
 }

@@ -63,11 +63,14 @@ export default class Map extends Component {
     }
 
     sortStops(a, b) {
-        const aRouteID = a.route_id;
-        const bRouteID = b.route_id;
+        const aRouteID = a[0].route_id;
+        const bRouteID = b[0].route_id;
 
         const aRouteIDIndex = routes.indexOf(aRouteID);
         const bRouteIDIndex = routes.indexOf(bRouteID);
+
+        console.log("A Route ID: " + aRouteID + ", B Route ID: " + bRouteID);
+        console.log("B Route ID Index: " + aRouteIDIndex + ", B Route ID Index: " + bRouteIDIndex);
 
         let comparison = 0;
         if (aRouteIDIndex > bRouteIDIndex) {
@@ -75,6 +78,8 @@ export default class Map extends Component {
         } else if (aRouteIDIndex < bRouteIDIndex) {
             comparison = -1;
         }
+
+        console.log("Comparison = " + comparison);
 
         return comparison;
     }
@@ -416,17 +421,19 @@ export default class Map extends Component {
         API.healthCheck();
 
 
-            let departures = [];
+        let departures = [];
+        let stops = [];
         for (let i in this.state.routes) {
             const route_id = this.state.routes[i];
             API.getStops(route_id)
                 .then(result => {
-                    const stops = result;
-                    for (let j in stops) {
-                        stops[j].route_id = route_id;
+                    const routeStops = result;
+                    for (let j in routeStops) {
+                        routeStops[j].route_id = route_id;
                     }
+                    stops.push(routeStops);
                     this.setState(prevState => ({
-                        stops: [...prevState.stops, stops]
+                        stops: [...prevState.stops, routeStops]
                     }));
                     let result2 = API.getDeparturesForRoute(route_id, result)
                         .then(response => {
@@ -434,13 +441,22 @@ export default class Map extends Component {
                             this.setState(prevState => ({
                                 departures: [...prevState.departures, response]
                             }));
-                            if(departures.length === this.state.routes.length) {
+                            if (departures.length === this.state.routes.length) {
+
+                                console.log(departures);
+                                console.log(stops);
+
                                 let runs;
                                 let filteredRuns;
                                 let runsAtStation = [];
                                 let runsBetweenStations = [];
-                                departures.sort(this.sortDepartures);
-                                const stations = this.state.stops.sort(this.sortStops);
+                                departures = departures.sort(this.sortDepartures);
+                                stops = stops.sort(this.sortStops);
+
+                                console.log(departures);
+                                console.log(stops);
+                                // console.log(departures);
+                                // console.log(stations);
                                 for (let i in departures) {
                                     runs = Departures.getUniqueRuns(departures[i], this.state.routes[i]);
                                     filteredRuns = Departures.getDeparturesForRuns(runs, departures[i]);
@@ -449,12 +465,12 @@ export default class Map extends Component {
                                         if (filteredRuns[j].departures[0].at_platform) {
                                             runsAtStation.push({
                                                 departure: filteredRuns[j].departures[0],
-                                                coordinates: Stations.getStopCoordinate(stations[i], filteredRuns[j].departures[0].stop_id)
+                                                coordinates: Stations.getStopCoordinate(stops[i], filteredRuns[j].departures[0].stop_id)
                                             });
                                         } else {
                                             runsBetweenStations.push({
                                                 departure: filteredRuns[j].departures[0],
-                                                coordinates: Stations.getCoordinatesPair(stations[i], filteredRuns[j].departures[0].stop_id, filteredRuns[j].direction_id)
+                                                coordinates: Stations.getCoordinatesPair(stops[i], filteredRuns[j].departures[0].stop_id, filteredRuns[j].direction_id)
                                             });
                                         }
                                     }
@@ -468,7 +484,7 @@ export default class Map extends Component {
                         })
                 })
         }
-    
+
 
         setInterval(() => {
             API.healthCheck();
@@ -486,12 +502,12 @@ export default class Map extends Component {
                                 departures: [...prevState.departures, response]
                             }));
 
-                            if(departures.length === this.state.routes.length) {
+                            if (departures.length === this.state.routes.length) {
                                 let runs;
                                 let filteredRuns;
                                 let runsAtStation = [];
                                 let runsBetweenStations = [];
-                                departures.sort(this.sortDepartures);
+                                departures = departures.sort(this.sortDepartures);
                                 const stations = this.state.stops.sort(this.sortStops);
                                 for (let i in departures) {
                                     runs = Departures.getUniqueRuns(departures[i], this.state.routes[i]);
@@ -663,46 +679,46 @@ export default class Map extends Component {
                 }
 
                 <MarkerClusterGroup maxClusterRadius={10}>
-                {
-                    runsBetweenStations.map((key, index) => {
-                        let timeStamp
-                        if (runsBetweenStations[index].departure.estimated_departure_utc) {
-                            const estimatedTime = moment.utc(runsBetweenStations[index].departure.estimated_departure_utc);
-                            timeStamp = estimatedTime.diff(moment.utc(), 'minutes');
-                        } else {
-                            const scheduledTime = moment.utc(runsBetweenStations[index].departure.scheduled_departure_utc);
-                            timeStamp = scheduledTime.diff(moment.utc(), 'minutes');
-                        }
-                        if (!runsBetweenStations[index].coordinates.previousStopCoordinates) {
-                            const coordinates = runsBetweenStations[index].coordinates.nextStopCoordinates;
-                            return <Marker icon={trainIcon} position={coordinates}>
-                                <Tooltip>
-                                    <p>Run ID: {runsBetweenStations[index].departure.run_id}</p>
-                                    <p>Departing Time: {timeStamp}</p>
-                                </Tooltip>
-                            </Marker>
-                        } else {
+                    {
+                        runsBetweenStations.map((key, index) => {
+                            let timeStamp
                             if (runsBetweenStations[index].departure.estimated_departure_utc) {
-                                const coordinates = Departures.determineRunCoordinates(0.5, runsBetweenStations[index].coordinates.previousStopCoordinates, runsBetweenStations[index].coordinates.nextStopCoordinates);
-                                if (runsBetweenStations[index].departure.direction_id === 1) {
-                                    return <RotatedMarker icon={trainSideIcon} position={coordinates} rotationAngle={90} rotationOrigin={'center'}>
-                                        <Tooltip>
-                                            <p>Run ID: {runsBetweenStations[index].departure.run_id}</p>
-                                            <p>Arrival Time: {timeStamp}</p>
-                                        </Tooltip>
-                                    </RotatedMarker>
-                                } else {
-                                    return <RotatedMarker icon={trainSideIcon} position={coordinates} rotationAngle={-90} rotationOrigin={'center'}>
-                                        <Tooltip>
-                                            <p>Run ID: {runsBetweenStations[index].departure.run_id}</p>
-                                            <p>Arrival Time: {timeStamp}</p>
-                                        </Tooltip>
-                                    </RotatedMarker>
+                                const estimatedTime = moment.utc(runsBetweenStations[index].departure.estimated_departure_utc);
+                                timeStamp = estimatedTime.diff(moment.utc(), 'minutes');
+                            } else {
+                                const scheduledTime = moment.utc(runsBetweenStations[index].departure.scheduled_departure_utc);
+                                timeStamp = scheduledTime.diff(moment.utc(), 'minutes');
+                            }
+                            if (!runsBetweenStations[index].coordinates.previousStopCoordinates) {
+                                const coordinates = runsBetweenStations[index].coordinates.nextStopCoordinates;
+                                return <Marker icon={trainIcon} position={coordinates}>
+                                    <Tooltip>
+                                        <p>Run ID: {runsBetweenStations[index].departure.run_id}</p>
+                                        <p>Departing Time: {timeStamp}</p>
+                                    </Tooltip>
+                                </Marker>
+                            } else {
+                                if (runsBetweenStations[index].departure.estimated_departure_utc) {
+                                    const coordinates = Departures.determineRunCoordinates(0.5, runsBetweenStations[index].coordinates.previousStopCoordinates, runsBetweenStations[index].coordinates.nextStopCoordinates);
+                                    if (runsBetweenStations[index].departure.direction_id === 1) {
+                                        return <RotatedMarker icon={trainSideIcon} position={coordinates} rotationAngle={90} rotationOrigin={'center'}>
+                                            <Tooltip>
+                                                <p>Run ID: {runsBetweenStations[index].departure.run_id}</p>
+                                                <p>Arrival Time: {timeStamp}</p>
+                                            </Tooltip>
+                                        </RotatedMarker>
+                                    } else {
+                                        return <RotatedMarker icon={trainSideIcon} position={coordinates} rotationAngle={-90} rotationOrigin={'center'}>
+                                            <Tooltip>
+                                                <p>Run ID: {runsBetweenStations[index].departure.run_id}</p>
+                                                <p>Arrival Time: {timeStamp}</p>
+                                            </Tooltip>
+                                        </RotatedMarker>
+                                    }
                                 }
                             }
-                        }
-                    })
-                }
+                        })
+                    }
                 </MarkerClusterGroup>
 
                 {stations[0] ?

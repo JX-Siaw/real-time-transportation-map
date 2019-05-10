@@ -17,7 +17,7 @@ export default class Index extends React.Component {
         var now = moment.utc().format();
         var key = 'b4ba8648-d112-4cf5-891d-8533756cef97';
         var id = '3001097';
-        
+
         // Health check
         var request = '/v2/healthcheck?timestamp=' + now + '&devid=' + id;
         var baseURL = 'https://timetableapi.ptv.vic.gov.au';
@@ -48,7 +48,11 @@ export default class Index extends React.Component {
                 console.log(response);
             });
 
-        
+        axios.get("/api")
+            .then(response => {
+                console.log(response);
+            })
+
     }
 
     calculateSignature(id, key) {

@@ -106,7 +106,7 @@ export default class Map extends Component {
     componentDidMount() {
         API.healthCheck();
 
-        axios.get('/train')
+        axios.get('http://localhost:5000/train')
             .then(response => {
                 console.log(response.data);
                 const { runsAtStation, runsBetweenStations } = response.data;
@@ -116,7 +116,7 @@ export default class Map extends Component {
                 });
             })
 
-        axios.get('/stops')
+        axios.get('http://localhost:5000/stops')
             .then(response => {
                 this.setState({
                     stops: response.data
@@ -125,7 +125,7 @@ export default class Map extends Component {
             })
 
         setInterval(() => {
-            axios.get('/train')
+            axios.get('http://localhost:5000/train')
                 .then(response => {
                     console.log(response.data);
                     const { runsAtStation, runsBetweenStations } = response.data;

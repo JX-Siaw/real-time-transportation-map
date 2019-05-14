@@ -6,7 +6,6 @@ import MarkerClusterGroup from 'react-leaflet-markercluster';
 import './Map.css';
 
 // Importing Submodules
-import * as API from '../../modules/PTVapi';
 import * as Stations from '../../modules/stations';
 import * as Departures from '../../modules/departures';
 
@@ -104,8 +103,6 @@ export default class Map extends Component {
     }
 
     componentDidMount() {
-        API.healthCheck();
-
         axios.get('/api/train')
             .then(response => {
                 console.log(response.data);
@@ -135,162 +132,14 @@ export default class Map extends Component {
                     });
                 })
         }, 15000);
-
-        // let departures = [];
-        // let stops = [];
-        // for (let i in this.state.routes) {
-        //     const route_id = this.state.routes[i];
-        //     API.getStops(route_id)
-        //         .then(result => {
-        //             const routeStops = result;
-        //             for (let j in routeStops) {
-        //                 routeStops[j].route_id = route_id;
-        //             }
-        //             stops.push(routeStops);
-        //             this.setState(prevState => ({
-        //                 stops: [...prevState.stops, routeStops]
-        //             }));
-        //             let result2 = API.getDeparturesForRoute(route_id, result)
-        //                 .then(response => {
-        //                     departures.push(response);
-        //                     this.setState(prevState => ({
-        //                         departures: [...prevState.departures, response]
-        //                     }));
-        //                     if (departures.length === this.state.routes.length) {
-
-        //                         console.log(departures);
-        //                         console.log(stops);
-
-        //                         let runs;
-        //                         let filteredRuns;
-        //                         let runsAtStation = [];
-        //                         let runsBetweenStations = [];
-        //                         departures = departures.sort(this.sortDepartures);
-        //                         stops = stops.sort(this.sortStops);
-
-        //                         console.log(departures);
-        //                         console.log(stops);
-        //                         // console.log(departures);
-        //                         // console.log(stations);
-        //                         for (let i in departures) {
-        //                             runs = Departures.getUniqueRuns(departures[i], this.state.routes[i]);
-        //                             filteredRuns = Departures.getDeparturesForRuns(runs, departures[i]);
-        //                             console.log(filteredRuns);
-        //                             for (let j in filteredRuns) {
-        //                                 if (filteredRuns[j].departures[0].at_platform) {
-        //                                     runsAtStation.push({
-        //                                         departure: filteredRuns[j].departures[0],
-        //                                         coordinates: Stations.getStopCoordinate(stops[i], filteredRuns[j].departures[0].stop_id)
-        //                                     });
-        //                                 } else {
-        //                                     runsBetweenStations.push({
-        //                                         departure: filteredRuns[j].departures[0],
-        //                                         coordinates: Stations.getCoordinatesPair(stops[i], filteredRuns[j].departures[0].stop_id, filteredRuns[j].direction_id)
-        //                                     });
-        //                                 }
-        //                             }
-        //                         }
-        //                         this.setState({
-        //                             runsAtStation: runsAtStation,
-        //                             runsBetweenStations: runsBetweenStations
-        //                         });
-        //                     }
-
-        //                 })
-        //         })
-        // }
-
-
-        // setInterval(() => {
-        //     API.healthCheck();
-
-        //     this.setState({
-        //         departures: []
-        //     }, () => {
-        //         let departures = [];
-        //         for (let i in this.state.routes) {
-        //             const route_id = this.state.routes[i];
-        //             let result2 = API.getDeparturesForRoute(route_id, this.state.stops[i])
-        //                 .then(response => {
-        //                     departures.push(response);
-        //                     this.setState(prevState => ({
-        //                         departures: [...prevState.departures, response]
-        //                     }));
-
-        //                     if (departures.length === this.state.routes.length) {
-        //                         let runs;
-        //                         let filteredRuns;
-        //                         let runsAtStation = [];
-        //                         let runsBetweenStations = [];
-        //                         departures = departures.sort(this.sortDepartures);
-        //                         const stations = this.state.stops.sort(this.sortStops);
-        //                         for (let i in departures) {
-        //                             runs = Departures.getUniqueRuns(departures[i], this.state.routes[i]);
-        //                             filteredRuns = Departures.getDeparturesForRuns(runs, departures[i]);
-        //                             console.log(filteredRuns);
-        //                             for (let j in filteredRuns) {
-        //                                 if (filteredRuns[j].departures[0].at_platform) {
-        //                                     runsAtStation.push({
-        //                                         departure: filteredRuns[j].departures[0],
-        //                                         coordinates: Stations.getStopCoordinate(stations[i], filteredRuns[j].departures[0].stop_id)
-        //                                     });
-        //                                 } else {
-        //                                     runsBetweenStations.push({
-        //                                         departure: filteredRuns[j].departures[0],
-        //                                         coordinates: Stations.getCoordinatesPair(stations[i], filteredRuns[j].departures[0].stop_id, filteredRuns[j].direction_id)
-        //                                     });
-        //                                 }
-        //                             }
-        //                         }
-        //                         this.setState({
-        //                             runsAtStation: runsAtStation,
-        //                             runsBetweenStations: runsBetweenStations
-        //                         });
-        //                     }
-        //                 })
-        //         }
-        //     });
-        // }, 30000);
     }
 
     render() {
         const position = [this.state.lat, this.state.lng];
         const stations = this.state.stops;
-        // const departures = this.state.departures.sort(this.sortDepartures);
 
         let runsAtStation = this.state.runsAtStation;
         let runsBetweenStations = this.state.runsBetweenStations;
-        // let runs;
-        // let filteredRuns;
-
-        // if (stations.length > 0)
-        //     console.log(stations);
-        // if (departures.length > 0) {
-        //     departures.sort(this.sortDepartures);
-        //     console.log(departures);
-        //     if (departures.length === this.state.routes.length) {
-        //         for (let i in departures) {
-        //             runs = Departures.getUniqueRuns(departures[i], this.state.routes[i]);
-        //             filteredRuns = Departures.getDeparturesForRuns(runs, departures[i]);
-        //             console.log(filteredRuns);
-        //             for (let j in filteredRuns) {
-        //                 if (filteredRuns[j].departures[0].at_platform) {
-        //                     runsAtStation.push({
-        //                         departure: filteredRuns[j].departures[0],
-        //                         coordinates: Stations.getStopCoordinate(stations[i], filteredRuns[j].departures[0].stop_id)
-        //                     });
-        //                 } else {
-        //                     runsBetweenStations.push({
-        //                         departure: filteredRuns[j].departures[0],
-        //                         coordinates: Stations.getCoordinatesPair(stations[i], filteredRuns[j].departures[0].stop_id, filteredRuns[j].direction_id)
-        //                     });
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-
-
 
         console.log(runsAtStation);
         console.log(runsBetweenStations);
@@ -472,7 +321,7 @@ export default class Map extends Component {
                     : null
                 }
 
-{stations[3] ?
+                {stations[3] ?
                     stations[3].map((key, index) => {
                         const coordinates = [stations[3][index].stop_latitude, stations[3][index].stop_longitude];
                         return <Marker icon={railIcon} position={coordinates}>
@@ -547,8 +396,8 @@ export default class Map extends Component {
                     : null
                 }
 
-                
-{stations[3] ?
+
+                {stations[3] ?
                     stations[3].map((key, index) => {
                         if (index < stations[3].length - 1) {
                             let nextIndex = index + 1;
@@ -559,7 +408,7 @@ export default class Map extends Component {
                     : null
                 }
 
-                
+
 
             </LeafletMap >
         );

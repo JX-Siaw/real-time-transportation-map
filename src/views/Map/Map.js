@@ -264,15 +264,20 @@ export default class Map extends Component {
                             } else {
                                 if (runsBetweenStations[index].departure.estimated_departure_utc) {
                                     const coordinates = Departures.determineRunCoordinates(0.5, runsBetweenStations[index].coordinates.previousStopCoordinates, runsBetweenStations[index].coordinates.nextStopCoordinates);
+                                    const previousStopCoordinates = runsBetweenStations[index].coordinates.previousStopCoordinates;
+                                    const nextStopCoordinates = runsBetweenStations[index].coordinates.nextStopCoordinates
+                                    const latitude = nextStopCoordinates[0] - previousStopCoordinates[0];
+                                    const longitude = nextStopCoordinates[1] - previousStopCoordinates[1];
+                                    const angle = Math.atan(longitude/latitude) * 180 / Math.PI;
                                     if (runsBetweenStations[index].departure.direction_id === 1) {
-                                        return <RotatedMarker icon={trainSideIcon} position={coordinates} rotationAngle={90} rotationOrigin={'center'}>
+                                        return <RotatedMarker icon={trainSideIcon} position={coordinates} rotationAngle={angle + 90} rotationOrigin={'center'}>
                                             <Tooltip>
                                                 <p>Run ID: {runsBetweenStations[index].departure.run_id}</p>
                                                 <p>Arrival Time: {timeStamp}</p>
                                             </Tooltip>
                                         </RotatedMarker>
                                     } else {
-                                        return <RotatedMarker icon={trainSideIcon} position={coordinates} rotationAngle={-90} rotationOrigin={'center'}>
+                                        return <RotatedMarker icon={trainSideIcon} position={coordinates} rotationAngle={angle -90} rotationOrigin={'center'}>
                                             <Tooltip>
                                                 <p>Run ID: {runsBetweenStations[index].departure.run_id}</p>
                                                 <p>Arrival Time: {timeStamp}</p>

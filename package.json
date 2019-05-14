@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "axios": "^0.18.0",
+    "bootstrap": "^4.3.1",
     "geojson-world-map": "0.0.2",
     "leaflet": "^1.4.0",
     "leaflet-rotatedmarker": "^0.2.0",
@@ -17,7 +18,8 @@
     "react-leaflet-rotatedmarker": "^0.1.0",
     "react-router-dom": "^5.0.0",
     "react-scripts": "^2.1.8",
-    "react-spinners": "^0.5.3"
+    "react-spinners": "^0.5.3",
+    "reactstrap": "^8.0.0"
   },
   "scripts": {
     "start": "react-scripts start",

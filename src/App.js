@@ -6,6 +6,7 @@ import './App.css';
 
 import Index from './views/Index/Index';
 import Map from './views/Map/Map';
+import Debug from './views/Debug/Debug';
 
 class App extends Component {
   render() {
@@ -13,6 +14,7 @@ class App extends Component {
       <Switch>
         <Route exact path="/" component={Index} />
         <Route path="/map" component={Map} />
+        <Route path="/debug" component={Debug} />
       </Switch>
     );
   }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Input, InputGroup, InputGroupAddon } from 'reactstrap';
+import { Button, Card, CardBody, Input, InputGroup, InputGroupAddon } from 'reactstrap';
 
 import './Debug.css';
 
@@ -14,6 +14,10 @@ export default class Debug extends React.Component {
             stops: [],
             runID: '',
             stopID: '',
+            routeID: '',
+            result1: '',
+            result2: '',
+            result3: '',
         };
     }
 
@@ -43,6 +47,12 @@ export default class Debug extends React.Component {
         });
     }
 
+    handleChangeRouteID(event) {
+        this.setState({
+            routeID: event.target.value
+        });
+    }
+
     returnDepartures(runID) {
         let departures = [];
         for (let i in this.state.departures) {
@@ -67,7 +77,13 @@ export default class Debug extends React.Component {
             filteredDepartures.push(stopName, differenceInTime);
         }
 
-        console.log(filteredDepartures);
+        const result = [];
+        result.push(departures);
+        result.push(filteredDepartures);
+
+        this.setState({
+            result1: result
+        });
 
 
     }
@@ -76,7 +92,9 @@ export default class Debug extends React.Component {
         for (let i in this.state.stops) {
             for (let j in this.state.stops[i]) {
                 if (this.state.stops[i][j].stop_id === stopID) {
-                    console.log(this.state.stops[i][j]);
+                    this.setState({
+                        result2: this.state.stops[i][j]
+                    });
                 }
             }
         }
@@ -88,6 +106,16 @@ export default class Debug extends React.Component {
                 if (this.state.stops[i][j].stop_id === stopID) {
                     return this.state.stops[i][j].stop_name;
                 }
+            }
+        }
+    }
+
+    returnStops(routeID) {
+        for (let i in this.state.stops) {
+            if (this.state.stops[i][0].route_id === routeID) {
+                this.setState({
+                    result3: this.state.stops[i]
+                });
             }
         }
     }
@@ -136,18 +164,29 @@ export default class Debug extends React.Component {
                     <Input placeholder="Return departures for the run id" value={this.state.runID} onChange={evt => this.handleChangeRunID(evt)} />
                     <Button onClick={() => this.returnDepartures(parseInt(this.state.runID))} color="info" className="btn btn-default">Submit</Button>
                 </InputGroup>
+                <Card className="center">
+                    <CardBody>
+                        <div><pre>{JSON.stringify(this.state.result1, null, 1)}</pre></div>
+                    </CardBody>
+                </Card>
                 <InputGroup className="center">
                     <Input placeholder="Return stop information with the stop ID" value={this.state.stopID} onChange={evt => this.handleChangeStopID(evt)} />
-                    <InputGroupAddon>
-                        <Button onClick={() => this.returnStopInformation(parseInt(this.state.stopID))} color="info" className="btn btn-default">Submit</Button>
-                    </InputGroupAddon>
+                    <Button onClick={() => this.returnStopInformation(parseInt(this.state.stopID))} color="info" className="btn btn-default">Submit</Button>
                 </InputGroup>
+                <Card className="center">
+                    <CardBody>
+                        <div><pre>{JSON.stringify(this.state.result2, null, 1)}</pre></div>
+                    </CardBody>
+                </Card>
                 <InputGroup className="center">
-                    <Input placeholder="Return stops for the route id" />
-                    <InputGroupAddon>
-                        <Button color="info" className="btn btn-default">Submit</Button>
-                    </InputGroupAddon>
+                    <Input placeholder="Return stops for the route id" value={this.state.routeID} onChange={evt => this.handleChangeRouteID(evt)} />
+                    <Button onClick={() => this.returnStops(parseInt(this.state.routeID))} color="info" className="btn btn-default">Submit</Button>
                 </InputGroup>
+                <Card className="center">
+                    <CardBody>
+                        <div><pre>{JSON.stringify(this.state.result3, null, 1)}</pre></div>
+                    </CardBody>
+                </Card>
             </div>
         )
     }

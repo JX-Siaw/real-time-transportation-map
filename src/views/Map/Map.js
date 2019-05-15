@@ -34,8 +34,7 @@ export default class Map extends Component {
             routes: [3, 15, 14],    // 2 = Belgrave, 3 = Cragieburn, 14 = Sunbury, 15 = Upfield, 
             stops: [],
             departures: [],
-            runsAtStation: [],
-            runsBetweenStations: [],
+            runs: [],
             latlngs: [],
             rails: [],
             trainLocations: []
@@ -106,10 +105,9 @@ export default class Map extends Component {
         axios.get('/api/train')
             .then(response => {
                 console.log(response.data);
-                const { runsAtStation, runsBetweenStations } = response.data;
+                const runs = response.data.runs;
                 this.setState({
-                    runsAtStation: runsAtStation,
-                    runsBetweenStations: runsBetweenStations
+                    runs: runs
                 });
             })
 
@@ -125,10 +123,9 @@ export default class Map extends Component {
             axios.get('/api/train')
                 .then(response => {
                     console.log(response.data);
-                    const { runsAtStation, runsBetweenStations } = response.data;
+                    const runs = response.data.runs;
                     this.setState({
-                        runsAtStation: runsAtStation,
-                        runsBetweenStations: runsBetweenStations
+                        runs: runs
                     });
                 })
         }, 15000);
@@ -137,14 +134,7 @@ export default class Map extends Component {
     render() {
         const position = [this.state.lat, this.state.lng];
         const stations = this.state.stops;
-
-        let runsAtStation = this.state.runsAtStation;
-        let runsBetweenStations = this.state.runsBetweenStations;
-
-        console.log(runsAtStation);
-        console.log(runsBetweenStations);
-
-
+        const runs = this.state.runs;
 
         // const rails = this.state.rails;
         // const trainLocations = this.state.trainLocations;
@@ -228,7 +218,7 @@ export default class Map extends Component {
                     }
                 </MarkerClusterGroup> */}
 
-                {
+                {/* {
                     runsAtStation.map((key, index) => {
                         const coordinates = runsAtStation[index].coordinates;
                         const estimatedTime = moment.utc(runsAtStation[index].departure.estimated_departure_utc);
@@ -240,177 +230,121 @@ export default class Map extends Component {
                             </Tooltip>
                         </Marker>
                     })
-                }
+                } */}
 
                 <MarkerClusterGroup maxClusterRadius={10}>
                     {
-                        runsBetweenStations.map((key, index) => {
-                            let timeStamp
-                            if (runsBetweenStations[index].departure.estimated_departure_utc) {
-                                const estimatedTime = moment.utc(runsBetweenStations[index].departure.estimated_departure_utc);
-                                timeStamp = estimatedTime.diff(moment.utc(), 'minutes');
-                            } else {
-                                const scheduledTime = moment.utc(runsBetweenStations[index].departure.scheduled_departure_utc);
-                                timeStamp = scheduledTime.diff(moment.utc(), 'minutes');
-                            }
-                            if (!runsBetweenStations[index].coordinates.previousStopCoordinates) {
-                                const coordinates = runsBetweenStations[index].coordinates.nextStopCoordinates;
-                                return <Marker icon={trainIcon} position={coordinates}>
-                                    <Tooltip>
-                                        <p>Run ID: {runsBetweenStations[index].departure.run_id}</p>
-                                        <p>Departing Time: {timeStamp}</p>
-                                    </Tooltip>
-                                </Marker>
-                            } else {
-                                if (runsBetweenStations[index].departure.estimated_departure_utc) {
-                                    const coordinates = Departures.determineRunCoordinates(0.5, runsBetweenStations[index].coordinates.previousStopCoordinates, runsBetweenStations[index].coordinates.nextStopCoordinates);
-                                    const previousStopCoordinates = runsBetweenStations[index].coordinates.previousStopCoordinates;
-                                    const nextStopCoordinates = runsBetweenStations[index].coordinates.nextStopCoordinates
-                                    const latitude = nextStopCoordinates[0] - previousStopCoordinates[0];
-                                    const longitude = nextStopCoordinates[1] - previousStopCoordinates[1];
-                                    const angle = Math.atan(longitude/latitude) * 180 / Math.PI;
-                                    if (runsBetweenStations[index].departure.direction_id === 1) {
-                                        return <RotatedMarker icon={trainSideIcon} position={coordinates} rotationAngle={angle + 90} rotationOrigin={'center'}>
-                                            <Tooltip>
-                                                <p>Run ID: {runsBetweenStations[index].departure.run_id}</p>
-                                                <p>Arrival Time: {timeStamp}</p>
-                                            </Tooltip>
-                                        </RotatedMarker>
-                                    } else {
-                                        return <RotatedMarker icon={trainSideIcon} position={coordinates} rotationAngle={angle -90} rotationOrigin={'center'}>
-                                            <Tooltip>
-                                                <p>Run ID: {runsBetweenStations[index].departure.run_id}</p>
-                                                <p>Arrival Time: {timeStamp}</p>
-                                            </Tooltip>
-                                        </RotatedMarker>
-                                    }
+                        runs.map((key, index) => {
+                            if (runs[index].departure.estimated_departure_utc) {
+                                // Determine timestamp (arrival time)
+                                let timeStamp
+                                if (runs[index].departure.estimated_departure_utc) {
+                                    const estimatedTime = moment.utc(runs[index].departure.estimated_departure_utc);
+                                    timeStamp = Math.abs(estimatedTime.diff(moment.utc(), 'minutes'));
+                                } else {
+                                    const scheduledTime = moment.utc(runs[index].departure.scheduled_departure_utc);
+                                    timeStamp = Math.abs(scheduledTime.diff(moment.utc(), 'minutes'));
                                 }
+
+                                // Determine angle of the train icon
+                                const previousStopCoordinates = runs[index].coordinates.previousStopCoordinates;
+                                const nextStopCoordinates = runs[index].coordinates.nextStopCoordinates
+                                let coordinates;
+
+                                if (!previousStopCoordinates) {
+                                    coordinates = runs[index].coordinates.nextStopCoordinates;
+                                    return <Marker icon={trainIcon} position={coordinates}>
+                                        <Tooltip>
+                                            <p>Run ID: {runs[index].departure.run_id}</p>
+                                            <p>Departure Time: {timeStamp}</p>
+                                        </Tooltip>
+                                    </Marker>
+                                }
+
+                                let angle = Departures.calculateAngle(previousStopCoordinates, nextStopCoordinates);
+                                if (runs[index].departure.direction_id === 1) {
+                                    angle += 90;
+                                } else {
+                                    angle -= 90;
+                                }
+
+                                if (runs[index].departure.at_platform) {
+                                    coordinates = runs[index].coordinates.nextStopCoordinates;
+                                } else {
+                                    coordinates = Departures.determineRunCoordinates(0.5, previousStopCoordinates, nextStopCoordinates);
+                                }
+
+
+                                return <RotatedMarker icon={trainSideIcon} position={coordinates} rotationAngle={angle} rotationOrigin={'center'}>
+                                    <Tooltip>
+                                        <p>Run ID: {runs[index].departure.run_id}</p>
+                                        <p>Arrival Time: {timeStamp}</p>
+                                    </Tooltip>
+                                </RotatedMarker>
+
+
+
+
+
+
+                                // if (!runsBetweenStations[index].coordinates.previousStopCoordinates) {
+                                //     const coordinates = runsBetweenStations[index].coordinates.nextStopCoordinates;
+                                //     return <Marker icon={trainIcon} position={coordinates}>
+                                //         <Tooltip>
+                                //             <p>Run ID: {runsBetweenStations[index].departure.run_id}</p>
+                                //             <p>Departing Time: {timeStamp}</p>
+                                //         </Tooltip>
+                                //     </Marker>
+                                // } else {
+                                //     if (runsBetweenStations[index].departure.estimated_departure_utc) {
+                                //         const coordinates = Departures.determineRunCoordinates(0.5, runsBetweenStations[index].coordinates.previousStopCoordinates, runsBetweenStations[index].coordinates.nextStopCoordinates);
+
+                                //         if (runsBetweenStations[index].departure.direction_id === 1) {
+                                //             return <RotatedMarker icon={trainSideIcon} position={coordinates} rotationAngle={angle + 90} rotationOrigin={'center'}>
+                                //                 <Tooltip>
+                                //                     <p>Run ID: {runsBetweenStations[index].departure.run_id}</p>
+                                //                     <p>Arrival Time: {timeStamp}</p>
+                                //                 </Tooltip>
+                                //             </RotatedMarker>
+                                //         } else {
+                                //             return <RotatedMarker icon={trainSideIcon} position={coordinates} rotationAngle={angle - 90} rotationOrigin={'center'}>
+                                //                 <Tooltip>
+                                //                     <p>Run ID: {runsBetweenStations[index].departure.run_id}</p>
+                                //                     <p>Arrival Time: {timeStamp}</p>
+                                //                 </Tooltip>
+                                //             </RotatedMarker>
+                                //         }
+                                //     }
+                                // }
                             }
                         })
                     }
                 </MarkerClusterGroup>
 
-                {stations[0] ?
-                    stations[0].map((key, index) => {
-                        const coordinates = [stations[0][index].stop_latitude, stations[0][index].stop_longitude];
-                        return <Marker icon={railIcon} position={coordinates}>
-                            <Tooltip>
-                                {stations[0][index].stop_name}
-                            </Tooltip>
-                        </Marker>
-                    })
-                    : null
-                }
-
-                {stations[1] ?
-                    stations[1].map((key, index) => {
-                        const coordinates = [stations[1][index].stop_latitude, stations[1][index].stop_longitude];
-                        return <Marker icon={railIcon} position={coordinates}>
-                            <Tooltip>
-                                {stations[1][index].stop_name}
-                            </Tooltip>
-                        </Marker>
-                    })
-                    : null
-                }
-
-                {stations[2] ?
-                    stations[2].map((key, index) => {
-                        const coordinates = [stations[2][index].stop_latitude, stations[2][index].stop_longitude];
-                        return <Marker icon={railIcon} position={coordinates}>
-                            <Tooltip>
-                                {stations[2][index].stop_name}
-                            </Tooltip>
-                        </Marker>
-                    })
-                    : null
-                }
-
-                {stations[3] ?
-                    stations[3].map((key, index) => {
-                        const coordinates = [stations[3][index].stop_latitude, stations[3][index].stop_longitude];
-                        return <Marker icon={railIcon} position={coordinates}>
-                            <Tooltip>
-                                {stations[3][index].stop_name}
-                            </Tooltip>
-                        </Marker>
-                    })
-                    : null
-                }
-
-                {/* {
+                {
                     stations.map((key, index) => {
-                        if (index < stations.length - 1 && stations[index].stop_sequence < 19) {
-                            let nextIndex = index + 1;
-                            const positions = [[stations[index].stop_latitude, stations[index].stop_longitude], [stations[nextIndex].stop_latitude, stations[nextIndex].stop_longitude]];
-                            return <Polyline positions={positions} />
-                        }
-                        if (index < stations.length - 1 && stations[index].stop_sequence === 19) {
-                            let nextIndex = 20;
-                            const positions = [[stations[index].stop_latitude, stations[index].stop_longitude], [stations[nextIndex].stop_latitude, stations[nextIndex].stop_longitude]];
-                            return <Polyline positions={positions} />
-                        }
+                        return stations[index].map((key2, index2) => {
+                            const coordinates = [stations[index][index2].stop_latitude, stations[index][index2].stop_longitude];
+                            return <Marker icon={railIcon} position={coordinates}>
+                                <Tooltip>
+                                    {stations[index][index2].stop_name}
+                                </Tooltip>
+                            </Marker>
+                        })
                     })
                 }
+
 
                 {
                     stations.map((key, index) => {
-                        if (index < stations.length - 1 && stations[index].stop_sequence === 16) {
-                            let nextIndex = 19;
-                            const positions = [[stations[index].stop_latitude, stations[index].stop_longitude], [stations[nextIndex].stop_latitude, stations[nextIndex].stop_longitude]];
-                            return <Polyline positions={positions} />
-                        }
-                        if (index < stations.length - 1 && stations[index].stop_sequence === 20) {
-                            let nextIndex = index + 1;
-                            const positions = [[stations[index].stop_latitude, stations[index].stop_longitude], [stations[nextIndex].stop_latitude, stations[nextIndex].stop_longitude]];
-                            return <Polyline positions={positions} />
-                        }
+                        return stations[index].map((key2, index2) => {
+                            if (index2 < stations[index].length - 1) {
+                                let nextIndex = index2 + 1;
+                                const positions = [[stations[index][index2].stop_latitude, stations[index][index2].stop_longitude], [stations[index][nextIndex].stop_latitude, stations[index][nextIndex].stop_longitude]];
+                                return <Polyline positions={positions} />
+                            }
+                        })
                     })
-                } */}
-
-                {stations[0] ?
-                    stations[0].map((key, index) => {
-                        if (index < stations[0].length - 1) {
-                            let nextIndex = index + 1;
-                            const positions = [[stations[0][index].stop_latitude, stations[0][index].stop_longitude], [stations[0][nextIndex].stop_latitude, stations[0][nextIndex].stop_longitude]];
-                            return <Polyline positions={positions} />
-                        }
-                    })
-                    : null
-                }
-
-                {stations[1] ?
-                    stations[1].map((key, index) => {
-                        if (index < stations[1].length - 1) {
-                            let nextIndex = index + 1;
-                            const positions = [[stations[1][index].stop_latitude, stations[1][index].stop_longitude], [stations[1][nextIndex].stop_latitude, stations[1][nextIndex].stop_longitude]];
-                            return <Polyline positions={positions} />
-                        }
-                    })
-                    : null
-                }
-
-                {stations[2] ?
-                    stations[2].map((key, index) => {
-                        if (index < stations[2].length - 1) {
-                            let nextIndex = index + 1;
-                            const positions = [[stations[2][index].stop_latitude, stations[2][index].stop_longitude], [stations[2][nextIndex].stop_latitude, stations[2][nextIndex].stop_longitude]];
-                            return <Polyline positions={positions} />
-                        }
-                    })
-                    : null
-                }
-
-
-                {stations[3] ?
-                    stations[3].map((key, index) => {
-                        if (index < stations[3].length - 1) {
-                            let nextIndex = index + 1;
-                            const positions = [[stations[3][index].stop_latitude, stations[3][index].stop_longitude], [stations[3][nextIndex].stop_latitude, stations[3][nextIndex].stop_longitude]];
-                            return <Polyline positions={positions} />
-                        }
-                    })
-                    : null
                 }
 
 

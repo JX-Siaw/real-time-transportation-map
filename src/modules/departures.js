@@ -85,3 +85,19 @@ export function determineRunCoordinates(scalar, previousStopCoordinates, nextSto
 
     return [xCoordinate, yCoordinate];
 }
+
+export function calculateAngle(previousStopCoordinates, nextStopCoordinates) {
+
+    let angle;
+
+    if (previousStopCoordinates) {
+        const latitude = nextStopCoordinates[0] - previousStopCoordinates[0];
+        const longitude = nextStopCoordinates[1] - previousStopCoordinates[1];
+        angle = Math.atan(longitude / latitude) * 180 / Math.PI;
+    } else {
+        angle = 0;
+    }
+
+
+    return angle;
+}

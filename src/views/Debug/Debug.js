@@ -149,7 +149,7 @@ export default class Debug extends React.Component {
                         departures: response.data
                     });
                 })
-        }, 15000)
+        }, 5000)
     }
 
     render() {

@@ -37,7 +37,7 @@ export default class Map extends Component {
             runs: [],
             latlngs: [],
             rails: [],
-            trainLocations: []
+            trainLocations: [],
         };
     }
 
@@ -101,10 +101,19 @@ export default class Map extends Component {
         return comparison;
     }
 
+    returnStopName(stopID) {
+        for (let i in this.state.stops) {
+            for (let j in this.state.stops[i]) {
+                if (this.state.stops[i][j].stop_id === stopID) {
+                    return this.state.stops[i][j].stop_name;
+                }
+            }
+        }
+    }
+
     componentDidMount() {
         axios.get('/api/train')
             .then(response => {
-                console.log(response.data);
                 const runs = response.data.runs;
                 this.setState({
                     runs: runs
@@ -116,7 +125,6 @@ export default class Map extends Component {
                 this.setState({
                     stops: response.data
                 });
-                console.log(response.data);
             })
 
         setInterval(() => {
@@ -235,18 +243,18 @@ export default class Map extends Component {
                 <MarkerClusterGroup maxClusterRadius={10}>
                     {
                         runs.map((key, index) => {
-                            if (runs[index].departure.estimated_departure_utc) {
+                            if (runs[index].departure[0].estimated_departure_utc) {
                                 // Determine timestamp (arrival time)
-                                let timeStamp
-                                if (runs[index].departure.estimated_departure_utc) {
-                                    const estimatedTime = moment.utc(runs[index].departure.estimated_departure_utc);
+                                let timeStamp;
+                                let details;
+                                if (runs[index].departure[0].estimated_departure_utc) {
+                                    const estimatedTime = moment.utc(runs[index].departure[0].estimated_departure_utc);
                                     timeStamp = Math.abs(estimatedTime.diff(moment.utc(), 'minutes'));
                                 } else {
-                                    const scheduledTime = moment.utc(runs[index].departure.scheduled_departure_utc);
+                                    const scheduledTime = moment.utc(runs[index].departure[0].scheduled_departure_utc);
                                     timeStamp = Math.abs(scheduledTime.diff(moment.utc(), 'minutes'));
                                 }
 
-                                // Determine angle of the train icon
                                 const previousStopCoordinates = runs[index].coordinates.previousStopCoordinates;
                                 const nextStopCoordinates = runs[index].coordinates.nextStopCoordinates
                                 let coordinates;
@@ -255,30 +263,69 @@ export default class Map extends Component {
                                     coordinates = runs[index].coordinates.nextStopCoordinates;
                                     return <Marker icon={trainIcon} position={coordinates}>
                                         <Tooltip>
-                                            <p>Run ID: {runs[index].departure.run_id}</p>
+                                            <p>Run ID: {runs[index].departure[0].run_id}</p>
                                             <p>Departure Time: {timeStamp}</p>
                                         </Tooltip>
                                     </Marker>
                                 }
 
+                                // Determine angle of the train icon
                                 let angle = Departures.calculateAngle(previousStopCoordinates, nextStopCoordinates);
-                                if (runs[index].departure.direction_id === 1) {
+                                if (nextStopCoordinates[0] < previousStopCoordinates[0]) {
                                     angle += 90;
                                 } else {
                                     angle -= 90;
                                 }
 
-                                if (runs[index].departure.at_platform) {
+
+                                if (runs[index].departure[0].at_platform) {
                                     coordinates = runs[index].coordinates.nextStopCoordinates;
                                 } else {
-                                    coordinates = Departures.determineRunCoordinates(0.5, previousStopCoordinates, nextStopCoordinates);
+                                    let ratio;
+                                    if (timeStamp > 3) {
+                                        ratio = 0.9;
+                                    }
+                                    else if (timeStamp === 3) {
+                                        ratio = 0.75;
+                                    }
+                                    else if (timeStamp === 2) {
+                                        ratio = 0.6;
+                                    }
+                                    else if (timeStamp === 1) {
+                                        ratio = 0.3;
+                                    } else {
+                                        ratio = 0.5;
+                                    }
+                                    coordinates = Departures.determineRunCoordinates(ratio, previousStopCoordinates, nextStopCoordinates);
                                 }
 
+                                let filteredDepartures = runs[index].departure;
+                                let filteredDetails = [];
+
+                                for (let i in filteredDepartures) {
+                                    const departureTime = moment.utc(filteredDepartures[i].estimated_departure_utc);
+                                    const differenceInTime = Math.abs(departureTime.diff(moment.utc(), 'minutes'));
+                                    const stopName = this.returnStopName(filteredDepartures[i].stop_id);
+                                    filteredDetails.push({
+                                        stopName: stopName,
+                                        differenceInTime: differenceInTime
+                                    });
+                                }
 
                                 return <RotatedMarker icon={trainSideIcon} position={coordinates} rotationAngle={angle} rotationOrigin={'center'}>
+                                    <Popup>
+                                        {
+                                            filteredDetails.map((key, index3) => {
+                                                return <p>
+                                                    {filteredDetails[index3].differenceInTime} minutes until {filteredDetails[index3].stopName}
+                                                </p>
+                                            })
+                                        }
+                                    </Popup>
                                     <Tooltip>
-                                        <p>Run ID: {runs[index].departure.run_id}</p>
+                                        <p>Run ID: {runs[index].departure[0].run_id}</p>
                                         <p>Arrival Time: {timeStamp}</p>
+                                        <p>Direction ID: {runs[index].coordinates.direction_id}</p>
                                     </Tooltip>
                                 </RotatedMarker>
 

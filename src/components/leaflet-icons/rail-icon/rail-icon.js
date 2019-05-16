@@ -8,7 +8,7 @@ const railIcon = new L.icon({
     shadowUrl: null,
     shadowSize: null,
     shadowAnchor: null,
-    iconSize: [40, 55],
+    iconSize: [30, 40],
     className: 'leaflet-div-icon'
 });
 

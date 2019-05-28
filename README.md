@@ -1,68 +1,72 @@
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-## Available Scripts
+# Real-Time Transportation Map
 
-In the project directory, you can run:
+A web app integrated with Leaflet to visualize real-time data of Metro train in Melbourne. It requires the [Real-Time Transportation API](https://github.com/JX-Siaw/real-time-transportation-api) to work.
 
-### `npm start`
+[DEMO](https://xephiz.dev/map)
 
-Runs the app in the development mode.<br>
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Getting Started
 
-The page will reload if you make edits.<br>
-You will also see any lint errors in the console.
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
 
-### `npm test`
+```bash
+1) Clone the project using the command
+$ git clone https://github.com/JX-Siaw/real-time-transportation-map.git
 
-Launches the test runner in the interactive watch mode.<br>
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+2) Install the node modules
+$ npm install
+```
 
-### `npm run build`
+### Prerequisites
 
-Builds the app for production to the `build` folder.<br>
-It correctly bundles React in production mode and optimizes the build for the best performance.
+You need to set up the [API](https://github.com/JX-Siaw/real-time-transportation-api) and run it in conjuction with the web app to work
 
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
+### Running
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+To run the app in development mode,
 
-### `npm run eject`
+```bash
+1) Runs the node js app in development mode
+$ npm start
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+2) Open the map
+Go to http://localhost:3000/map
+```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Deployment
 
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+To deploy the app to a server
+```bash
+1) ssh into the server
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+2) Clone the project in the server
+$ git clone https://github.com/JX-Siaw/real-time-transportation-map.git
 
-## Learn More
+3) Build the app
+$ npm run build
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+4) Copy the build files to where the static files are hosted
+```
+``
+Make sure a reverse proxy is set up allowing the web app to call the API at the designated port
+``
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Built With
 
-### Code Splitting
+* [React](https://reactjs.org/) - The web library used to create the web app
+* [Leaflet](https://leafletjs.com/) - Open-source JavaScript map library
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
+## Authors
 
-### Analyzing the Bundle Size
+* **Jeremy Siaw** - *Initial work*
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
+## License
 
-### Making a Progressive Web App
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
+## Acknowledgments
 
-### Advanced Configuration
+* Thanks to [Public Transport Victoria](https://www.ptv.vic.gov.au/footer/about-ptv/digital-tools-and-updates/) for providing access to their Timetable API's data 
+* Thanks to RMIT VXLab for providing access to the lab for development work and testing with the tiled displays
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
-
-### Deployment
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
-
-### `npm run build` fails to minify
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
